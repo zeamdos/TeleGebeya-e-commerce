@@ -22,10 +22,24 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payment', paymentRoutes);
 
-// Add a root route so the browser doesn't show "Cannot GET /"
-app.get('/', (req, res) => {
-  res.send('Telegram Marketplace API is running...');
-});
+const path = require('path');
+const fs = require('fs');
+
+const frontendDist = path.join(__dirname, 'frontend', 'dist', 'frontend', 'browser');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      return res.sendFile(path.join(frontendDist, 'index.html'));
+    }
+    next();
+  });
+} else {
+  // Add a root route so the browser doesn't show "Cannot GET /"
+  app.get('/', (req, res) => {
+    res.json({ message: 'TeleGebeya Marketplace API is running...', status: 'OK' });
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 

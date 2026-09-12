@@ -4,6 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js",
+    "build:frontend": "npm run --prefix frontend build",
+    "dev:frontend": "npm run --prefix frontend start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

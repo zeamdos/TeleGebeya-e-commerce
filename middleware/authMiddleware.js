@@ -9,15 +9,30 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, JWT_SECRET);
       req.user = decoded; // Will contain id and role
-      next();
+      return next();
     } catch (error) {
-      res.status(401).json({ message: 'Not authorized, token failed' });
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
 
   if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
+};
+
+const optionalProtect = async (req, res, next) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      if (token && token !== 'null' && token !== 'undefined') {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+      }
+    } catch (error) {
+      // Ignore token decode error for optional auth
+    }
+  }
+  next();
 };
 
 const admin = (req, res, next) => {
@@ -28,4 +43,4 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin };
+module.exports = { protect, optionalProtect, admin };
