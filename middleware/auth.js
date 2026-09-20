@@ -14,7 +14,9 @@ module.exports = function (req, res, next) {
     const token = authHeader.split(' ')[1] || authHeader;
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    req.user = decoded; // Standardized user payload
+    req.user = {decoded,
+      _id: decoded.id || decoded._id
+    }; // Standardized user payload
     next();
   } catch (err) {
     res.status(401).json({ message: 'Token is not valid' });

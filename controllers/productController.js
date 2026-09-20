@@ -63,16 +63,53 @@ exports.getProductById = async (req, res) => {
   }
 };
 
+const normalizeVariantList = (value) => {
+  const rawList = Array.isArray(value) ? value : [];
+  const variants = rawList
+    .map(item => ({
+      name: String(item?.name || '').trim(),
+      stock: Math.max(0, Number(item?.stock ?? 0))
+    }))
+    .filter(item => item.name);
+
+  if (variants.length === 0 && value && value.name) {
+    variants.push({
+      name: String(value.name).trim(),
+      stock: Math.max(0, Number(value.stock ?? 0))
+    });
+  }
+
+  if (variants.length === 0) {
+    const fallbackStock = typeof value === 'number' ? value : 25;
+    return [{ name: 'Default', stock: Math.max(0, Number(fallbackStock)) }];
+  }
+
+  return variants;
+};
+
+const sumVariantStock = (colors) => {
+  if (!Array.isArray(colors) || colors.length === 0) return 0;
+  return colors.reduce((sum, item) => sum + Math.max(0, Number(item.stock ?? 0)), 0);
+};
+
 exports.createProduct = async (req, res) => {
   try {
-    const productData = {
+    const normalizedColors = normalizeVariantList(req.body.colors ?? req.body.color ?? req.body.stock);
+    const payload = {
       ...req.body,
       seller: req.user ? req.user.id : undefined,
-      sellerName: req.body.sellerName || (req.user ? req.user.fullName : 'TeleGebeya Seller'),
+      sellerId: req.user ? req.user.id : undefined,
+      sellerName: req.body.sellerName || (req.user ? (req.user.fullName || req.user.shopName) : 'TeleGebeya Seller'),
       sellerPhone: req.body.sellerPhone || (req.user ? req.user.phone : '0911223344'),
-      telegramHandle: req.body.telegramHandle || (req.user?.telegramHandle ? req.user.telegramHandle : '@telegebeya_bot')
+      telegramHandle: req.body.telegramHandle || (req.user?.telegramHandle ? req.user.telegramHandle : '@TeleGebeya_Shop_bot'),
+      imageUrl: req.file ? req.file.path : (req.body.imageUrl || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80'),
+      colors: normalizedColors,
+      color: normalizedColors[0]?.name || req.body.color || '',
+      stock: typeof req.body.stock === 'number'
+        ? Math.max(0, Number(req.body.stock))
+        : sumVariantStock(normalizedColors) || 25,
     };
-    const product = new Product(productData);
+    const product = new Product(payload);
     const createdProduct = await product.save();
     res.status(201).json(createdProduct);
   } catch (error) {
@@ -82,7 +119,17 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const normalizedColors = normalizeVariantList(req.body.colors ?? req.body.color ?? req.body.stock);
+    const payload = {
+      ...req.body,
+      colors: normalizedColors,
+      color: normalizedColors[0]?.name || req.body.color || '',
+      stock: typeof req.body.stock === 'number'
+        ? Math.max(0, Number(req.body.stock))
+        : sumVariantStock(normalizedColors) || 25,
+    };
+
+    const product = await Product.findByIdAndUpdate(req.params.id, payload, { new: true });
     if (product) {
       res.json(product);
     } else {
