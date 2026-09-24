@@ -3,6 +3,20 @@ require('dotenv').config();
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
+// Webhook path
+bot.webhookPath = '/telebirr-webhook';
+
+// Webhook setup for production
+if (process.env.BOT_WEBHOOK_DOMAIN && process.env.NODE_ENV === 'production') {
+  const webhookUrl = `${process.env.BOT_WEBHOOK_DOMAIN}/bot${bot.webhookPath}`;
+  bot.telegram.setWebhook(webhookUrl)
+    .then(() => console.log(`Webhook set to: ${webhookUrl}`))
+    .catch(err => console.error('Webhook setup failed:', err.message));
+} else {
+  // Use polling for development
+  console.log('Running in polling mode (development)');
+}
+
 // 1. /start Command — User links their phone number
 bot.start((ctx) => {
   ctx.reply(
@@ -25,7 +39,7 @@ bot.on('contact', async (ctx) => {
     console.log('👉 YOUR TELEGRAM CHAT ID IS:', chatId);
     console.log('====================================');
 
-    const User = require('./models/User');
+    const User = require('./models/user');
     
     // Find user by phone (matching digits) and update their telegramChatId
     const user = await User.findOneAndUpdate(
@@ -113,6 +127,10 @@ bot.action(/^track_(.+)$/, async (ctx) => {
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
-bot.launch().then(() => console.log('TeleGebeya Bot active!'));
+bot.launch()
+  .then(() => console.log('TeleGebeya Bot active!'))
+  .catch((err) => {
+    console.error('Telegram bot startup failed; API will continue running:', err.message);
+  });
 
 module.exports = bot;

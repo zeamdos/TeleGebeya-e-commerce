@@ -1,0 +1,160 @@
+<div class="max-w-4xl mx-auto px-4 py-8">
+  
+  <div class="bg-white text-black rounded-2xl p-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-md">
+    <div>
+      <h1 class="text-2xl font-bold">
+        Welcome back, {{ authService.currentUser()?.fullName || 'User' }}!
+      </h1>
+      <p class="text-xs text-black mt-1">
+        Phone: {{ authService.currentUser()?.phone }} | Role: 
+        <span class="capitalize font-bold text-black">{{ authService.currentUser()?.role || 'Buyer' }}</span>
+      </p>
+    </div>
+
+    <button 
+      (click)="authService.logout()" 
+      class="px-4 py-2 text-xs font-bold text-red-100 bg-red-900/80 hover:bg-red-900/70 border border-red-500/30 rounded-xl transition cursor-pointer">
+      Sign Out
+    </button>
+  </div>
+
+  <!-- Account Navigation Tabs -->
+  <div class="flex border-b border-gray-200 mb-6 gap-6 text-sm font-semibold">
+    <button 
+      (click)="switchTab('profile')"
+      [class.border-emerald-800]="activeTab === 'profile'"
+      [class.text-emerald-950]="activeTab === 'profile'"
+      [class.border-transparent]="activeTab !== 'profile'"
+      class="pb-3 border-b-2 transition cursor-pointer text-gray-500 hover:text-emerald-950">
+      My Profile
+    </button>
+
+    <button 
+      (click)="switchTab('orders')"
+      [class.border-emerald-800]="activeTab === 'orders'"
+      [class.text-emerald-950]="activeTab === 'orders'"
+      [class.border-transparent]="activeTab !== 'orders'"
+      class="pb-3 border-b-2 transition cursor-pointer text-gray-500 hover:text-emerald-950">
+      My Orders
+    </button>
+
+    <button 
+      *ngIf="authService.currentUser()?.role === 'seller' || authService.currentUser()?.role === 'admin'"
+      (click)="switchTab('seller')"
+      [class.border-emerald-800]="activeTab === 'seller'"
+      [class.text-emerald-950]="activeTab === 'seller'"
+      [class.border-transparent]="activeTab !== 'seller'"
+      class="pb-3 border-b-2 transition cursor-pointer text-gray-500 hover:text-emerald-950">
+      Seller Dashboard
+    </button>
+  </div>
+
+  <!-- Tab Content 1: Profile Details -->
+  <div *ngIf="activeTab === 'profile'" class="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs max-w-xl">
+    <h2 class="text-base font-bold text-green-950 mb-4">Personal Details</h2>
+    
+    <div class="space-y-4 text-xs">
+      <div>
+        <label class="text-gray-500 font-medium block mb-1">Full Name</label>
+        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 font-semibold text-gray-800">
+          {{ authService.currentUser()?.fullName }}
+        </div>
+      </div>
+
+      <div>
+        <label class="text-gray-500 font-medium block mb-1">Phone Number</label>
+        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 font-semibold text-gray-800">
+          {{ authService.currentUser()?.phone }}
+        </div>
+      </div>
+
+      <div>
+        <label class="text-gray-500 font-medium block mb-1">Default Delivery Address</label>
+        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 font-semibold text-gray-800">
+          Addis Ababa, ET
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Content 2: Order History -->
+  <div *ngIf="activeTab === 'orders'" class="space-y-3">
+    <h2 class="text-base font-bold text-green-950 mb-4">Order History</h2>
+
+    <div *ngFor="let order of myOrders()" class="p-4 bg-white border border-gray-200 rounded-2xl flex flex-col gap-3 text-xs">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} • {{ order.items?.length || 0 }} item(s)</p>
+          <p class="text-gray-400 text-[11px]">{{ order.createdAt | date:'short' }}</p>
+        </div>
+        <div class="text-right">
+          <p class="font-bold text-emerald-900">{{ order.totalAmount }} ETB</p>
+          <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+            {{ order.orderStatus }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Action Buttons properly placed INSIDE the loop -->
+      <div class="flex gap-2 justify-end">
+        <button
+    *ngIf="canConfirmDelivery(order)"
+    (click)="confirmDelivery(order)"
+    class="px-3 py-1.5 bg-emerald-800 text-white text-[11px] font-bold rounded-lg hover:bg-emerald-900 transition cursor-pointer">
+    ✓ Confirm Delivered
+  </button>
+  <button
+    *ngIf="canCancel(order)"
+    (click)="cancelOrder(order)"
+    class="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 text-[11px] font-bold rounded-lg hover:bg-red-100 transition cursor-pointer">
+    ✕ Cancel Order
+  </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Content 3: Seller Hub (Conditional) -->
+ <div *ngIf="activeTab === 'seller'" class="space-y-6">
+  <div class="p-6 bg-emerald-50/50 border border-emerald-200 rounded-2xl">
+    <h2 class="text-base font-bold text-green-950 mb-2">Merchant Management</h2>
+    <p class="text-xs text-gray-600 mb-4">Manage your store listings and sync updates directly from Telegram.</p>
+    
+    <button class="px-4 py-2 bg-emerald-950 text-white text-xs font-bold rounded-xl hover:bg-emerald-900 transition cursor-pointer">
+      + Post New Product
+    </button>
+  </div>
+
+  <div>
+    <h2 class="text-base font-bold text-green-950 mb-4">Orders to Fulfill</h2>
+
+    <div *ngIf="mySellerOrders().length === 0" class="text-xs text-gray-500">
+      No orders yet.
+    </div>
+
+    <div *ngFor="let order of mySellerOrders()" class="p-4 bg-white border border-gray-200 rounded-2xl flex flex-col gap-3 text-xs mb-3">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} · {{ order.items?.length || 0 }} item(s)</p>
+          <p class="text-gray-400 text-[11px]">{{ order.createdAt | date:'short' }}</p>
+        </div>
+        <div class="text-right">
+          <p class="font-bold text-emerald-900">{{ order.totalAmount }} ETB</p>
+          <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+            {{ order.orderStatus }}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex gap-2 justify-end">
+        <button
+          *ngIf="canMarkShipped(order)"
+          (click)="markShipped(order)"
+          class="px-3 py-1.5 bg-blue-800 text-white text-[11px] font-bold rounded-lg hover:bg-blue-900 transition cursor-pointer">
+          🚚 Mark as Shipped
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>

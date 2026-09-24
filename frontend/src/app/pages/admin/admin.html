@@ -1,0 +1,408 @@
+<div class="admin-root">
+  <div class="admin-topbar">
+    <div class="at-left">
+      <button type="button" class="back-btn" (click)="goBackHome()">
+        ← {{ isAmharic ? 'መለስ' : 'Back to Shop' }}
+      </button>
+      <h1>{{ isAmharic ? 'አድሚን መደብር' : 'Admin Dashboard' }}</h1>
+    </div>
+    <div class="at-right">
+      <button type="button" class="refresh-btn" (click)="refreshAll()">
+        🔄 {{ isAmharic ? 'አሁኑኑ ያድሱ' : 'Refresh' }}
+      </button>
+    </div>
+  </div>
+
+  <nav class="admin-tabs">
+    <button *ngFor="let t of [
+      {id:'overview',label:'Overview', am:'ግላዊ ምዕራፍ'},
+      {id:'products',label:'Products', am:'ምርቶች'},
+      {id:'users',label:'Users', am:'ተጠቃሚዎች'},
+      {id:'orders',label:'Orders', am:'ትእዛዞች'}
+    ]" class="at-tab" [class.at-tab-active]="tab === t.id" (click)="tab = t.id">
+      {{ isAmharic ? t.am : t.label }}
+    </button>
+  </nav>
+
+  <div *ngIf="isLoading()" class="loader">
+    <div class="spinner"></div>
+    <span>{{ isAmharic ? 'በመጫን ላይ…' : 'Loading…' }}</span>
+  </div>
+
+  <!-- OVERVIEW -->
+  <section *ngIf="tab === 'overview'" class="admin-section">
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-body">
+          <div class="stat-label">{{ isAmharic ? 'ጠቅላላ ተጠቃሚዎች' : 'Total Users' }}</div>
+          <div class="stat-value">{{ stats().users }}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🏪</div>
+        <div class="stat-body">
+          <div class="stat-label">{{ isAmharic ? 'ሻጮች' : 'Sellers' }}</div>
+          <div class="stat-value">{{ stats().sellers }}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-body">
+          <div class="stat-label">{{ isAmharic ? 'ምርቶች' : 'Products' }}</div>
+          <div class="stat-value">{{ stats().products }}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🧾</div>
+        <div class="stat-body">
+          <div class="stat-label">{{ isAmharic ? 'ትእዛዞች' : 'Orders' }}</div>
+          <div class="stat-value">{{ stats().orders }}</div>
+        </div>
+      </div>
+      <div class="stat-card revenue">
+        <div class="stat-icon">💰</div>
+        <div class="stat-body">
+          <div class="stat-label">{{ isAmharic ? 'የገቢው ጠቅላላ' : 'Revenue (Paid)' }}</div>
+          <div class="stat-value">{{ formatCurrency(stats().revenue) }}</div>
+        </div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-icon">⏱</div>
+        <div class="stat-body">
+          <div class="stat-label">{{ isAmharic ? 'የተጠበቁት ስራዎች' : 'Pending Orders' }}</div>
+          <div class="stat-value">{{ stats().pendingOrders }}</div>
+        </div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-body">
+          <div class="stat-label">{{ isAmharic ? 'አነጋጋሪ ክምችት' : 'Low Stock' }}</div>
+          <div class="stat-value">{{ stats().lowStock }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-grid">
+      <div class="quick-panel">
+        <div class="qp-head">
+          <h3>{{ isAmharic ? 'የቅርብ የተደረጉ ትእዛዞች' : 'Recent orders' }}</h3>
+          <button type="button" class="qp-more" (click)="tab='orders'">{{ isAmharic ? 'ሁሉንም ይመልከቱ' : 'View all' }}</button>
+        </div>
+        <div class="qp-list">
+          <div *ngIf="orders().length === 0" class="qp-empty">{{ isAmharic ? 'ምንም ትእዛዝ አልተገኘም' : 'No orders yet' }}</div>
+          <div *ngFor="let o of orders() | slice:0:6" class="qp-row">
+            <div class="qp-col">
+              <div class="qp-main">{{ o.orderNumber || ('#' + o._id?.slice(-6)) }}</div>
+              <div class="qp-sub">{{ o.customerName || o.phone }} · {{ o.items?.length || 0 }} items</div>
+            </div>
+            <span class="status-pill" [ngClass]="statusColor(o.orderStatus)">{{ o.orderStatus }}</span>
+            <div class="qp-col right">
+              <div class="qp-main">{{ formatCurrency(o.totalAmount) }}</div>
+              <div class="qp-sub">{{ o.createdAt | slice:0:10 }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quick-panel">
+        <div class="qp-head">
+          <h3>{{ isAmharic ? 'የተቀነሰ ክምችት' : 'Low stock alerts' }}</h3>
+          <button type="button" class="qp-more" (click)="tab='products'">{{ isAmharic ? 'ሁሉንም ይመልከቱ' : 'View all' }}</button>
+        </div>
+        <div class="qp-list">
+          <div *ngIf="(products() | filterLowStock).length === 0" class="qp-empty">
+            {{ isAmharic ? 'ሁሉም ክምችት ደህና ነው ✅' : 'All products are well stocked ✅' }}
+          </div>
+          <div *ngFor="let p of (products() | filterLowStock) | slice:0:6" class="qp-row">
+            <img class="qp-img" [src]="p.imageUrl" alt="">
+            <div class="qp-col">
+              <div class="qp-main">{{ p.name }}</div>
+              <div class="qp-sub">{{ p.category }}</div>
+            </div>
+            <span class="stock-badge"
+              [class.stock-low]="(p.stock ?? 0) <= 3"
+              [class.stock-out]="(p.stock ?? 0) === 0">
+              {{ (p.stock ?? 0) === 0
+                ? (isAmharic ? 'ተጨናነቋል' : 'Sold out')
+                : (isAmharic ? 'ቀሪ: ' : 'Stock: ') + (p.stock ?? 0) }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCTS -->
+  <section *ngIf="tab === 'products'" class="admin-section">
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <h3>{{ isAmharic ? 'ሁሉም ምርቶች' : 'All Products' }} ({{ products().length }})</h3>
+      </div>
+      <div class="tbl-wrap">
+        <table class="data-tbl">
+          <thead>
+            <tr>
+              <th></th>
+              <th>{{ isAmharic ? 'ስም' : 'Name' }}</th>
+              <th>{{ isAmharic ? 'ምድብ' : 'Category' }}</th>
+              <th class="num">{{ isAmharic ? 'ዋጋ' : 'Price' }}</th>
+              <th class="num">{{ isAmharic ? 'ክምችት' : 'Stock' }}</th>
+              <th>{{ isAmharic ? 'ሻጭ' : 'Seller' }}</th>
+              <th>{{ isAmharic ? 'ተለመደ' : 'Featured' }}</th>
+              <th class="actions">{{ isAmharic ? 'ተግባሮች' : 'Actions' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="products().length === 0">
+              <td colspan="8" class="empty-cell">{{ isAmharic ? 'ምንም እቃ አልተገኘም' : 'No products' }}</td>
+            </tr>
+            <tr *ngFor="let p of products()">
+              <td><img class="tbl-img" [src]="p.imageUrl" alt=""></td>
+              <td class="bold">{{ p.name }}</td>
+              <td>{{ p.category }}</td>
+              <td class="num">{{ formatCurrency(p.price) }}</td>
+              <td class="num">
+                <span class="stock-badge"
+                  [class.stock-low]="(p.stock ?? 0) <= 3"
+                  [class.stock-out]="(p.stock ?? 0) === 0">
+                  {{ p.stock ?? 0 }}
+                </span>
+              </td>
+              <td>{{ p.sellerName || p.telegramHandle || '—' }}</td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [checked]="!!p.featured"
+                    (change)="toggleProductFeatured(p._id, !p.featured)">
+                  <span class="slider"></span>
+                </label>
+              </td>
+              <td class="actions">
+                <button type="button" class="tb-btn edit" (click)="openEditProduct(p)">✏️ {{ isAmharic ? 'አስተካክል' : 'Edit' }}</button>
+                <button type="button" class="tb-btn del" (click)="deleteProduct(p._id)">🗑</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- USERS -->
+  <section *ngIf="tab === 'users'" class="admin-section">
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <h3>{{ isAmharic ? 'ሁሉም ተጠቃሚዎች' : 'All Users' }} ({{ users().length }})</h3>
+      </div>
+      <div class="tbl-wrap">
+        <table class="data-tbl">
+          <thead>
+            <tr>
+              <th>{{ isAmharic ? 'ሙሉ ስም' : 'Name' }}</th>
+              <th>{{ isAmharic ? 'ስልክ' : 'Phone' }}</th>
+              <th>{{ isAmharic ? 'ሱቅ / የቴሌግራም' : 'Shop / TG' }}</th>
+              <th>{{ isAmharic ? 'ሚና' : 'Role' }}</th>
+              <th>{{ isAmharic ? 'ሁኔታ' : 'Status' }}</th>
+              <th class="actions">{{ isAmharic ? 'ተግባሮች' : 'Actions' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="users().length === 0">
+              <td colspan="6" class="empty-cell">
+                {{ isAmharic ? 'ምንም ተጠቃሚ አልተገኘም' : 'No users. Database may be unavailable.' }}
+              </td>
+            </tr>
+            <tr *ngFor="let u of users()">
+              <td class="bold">{{ u.fullName || '—' }}</td>
+              <td>{{ u.phone }}</td>
+              <td>{{ u.shopName || u.telegramHandle || '—' }}</td>
+              <td>
+                <select class="mini-sel" [ngModel]="u.role"
+                  (change)="updateUserRole(u._id || u.id, $any($event.target).value)">
+                  <option value="buyer">{{ isAmharic ? 'ተጠቃሚ' : 'Buyer' }}</option>
+                  <option value="seller">{{ isAmharic ? 'ሻጭ' : 'Seller' }}</option>
+                  <option value="admin">{{ isAmharic ? 'አድሚን' : 'Admin' }}</option>
+                </select>
+              </td>
+              <td>
+                <span class="status-pill"
+                  [ngClass]="u.banned ? 'status-cancelled' : 'status-delivered'">
+                  {{ u.banned ? (isAmharic ? 'ተሰርዟል' : 'Banned') : (isAmharic ? 'ነቅ' : 'Active') }}
+                </span>
+              </td>
+              <td class="actions">
+                <button type="button"
+                  [class]="u.banned ? 'tb-btn edit' : 'tb-btn del'"
+                  (click)="toggleUserBan(u._id || u.id, !u.banned)">
+                  {{ u.banned ? '✔ ' + (isAmharic ? 'አንቀፅ' : 'Unban') : '🚫 ' + (isAmharic ? 'አትዳር' : 'Ban') }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ORDERS -->
+  <section *ngIf="tab === 'orders'" class="admin-section">
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <h3>{{ isAmharic ? 'ሁሉም ትእዛዞች' : 'All Orders' }} ({{ orders().length }})</h3>
+      </div>
+      <div class="tbl-wrap">
+        <table class="data-tbl">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>{{ isAmharic ? 'ደንበኛ' : 'Customer' }}</th>
+              <th>{{ isAmharic ? 'እቃዎች' : 'Items' }}</th>
+              <th class="num">{{ isAmharic ? 'ጠቅላላ' : 'Total' }}</th>
+              <th>{{ isAmharic ? 'ክፍያ' : 'Payment' }}</th>
+              <th>{{ isAmharic ? 'ሁኔታ' : 'Status' }}</th>
+              <th>{{ isAmharic ? 'ቀን' : 'Date' }}</th>
+              <th class="actions">{{ isAmharic ? 'ዝማኔ' : 'Manage' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="orders().length === 0">
+              <td colspan="8" class="empty-cell">{{ isAmharic ? 'ምንም ትእዛዝ አልተገኘም' : 'No orders yet' }}</td>
+            </tr>
+            <tr *ngFor="let o of orders()">
+              <td class="bold mono">{{ o.orderNumber || ('#' + (o._id || '').slice(-6)) }}</td>
+              <td>
+                <div>{{ o.customerName || '—' }}</div>
+                <div class="muted">{{ o.phone }}</div>
+              </td>
+              <td>
+                <div *ngFor="let it of (o.items || [])" class="order-item-name">
+                  {{ it.name }} × {{ it.quantity }}
+                </div>
+                <span *ngIf="!o.items?.length" class="muted">—</span>
+              </td>
+              <td class="num">{{ formatCurrency(o.totalAmount) }}</td>
+              <td>
+                <span class="status-pill"
+                  [ngClass]="statusColor(o.paymentStatus)">
+                  {{ o.paymentMethod }} · {{ o.paymentStatus }}
+                </span>
+              </td>
+              <td>
+                <select class="mini-sel" [ngModel]="o.orderStatus"
+                  (change)="updateOrderStatus(o._id, { orderStatus: $any($event.target).value })">
+                  <option value="pending">pending</option>
+                  <option value="confirmed">confirmed</option>
+                  <option value="shipping">shipping</option>
+                  <option value="delivered">delivered</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+              </td>
+              <td class="muted">{{ (o.createdAt || '') | slice:0:10 }}</td>
+             <td class="actions">
+  <button type="button" class="tb-btn edit" (click)="openReviewOrder(o)">
+     {{ isAmharic ? 'ክፍያ ይመልከቱ' : 'Review Payment' }}
+  </button>
+</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- EDIT PRODUCT MODAL -->
+  <div *ngIf="isEditProductOpen" class="modal-backdrop" (click)="closeEditProduct()"></div>
+  <div *ngIf="isEditProductOpen" class="edit-modal">
+    <div class="modal-head">
+      <h3>{{ isAmharic ? 'ምርቱን አስተካክል' : 'Edit product' }}</h3>
+      <button type="button" class="close-btn" (click)="closeEditProduct()">✕</button>
+    </div>
+    <div *ngIf="editProduct" class="modal-body">
+      <div class="eimg-wrap">
+        <img class="eimg" [src]="editProduct.imageUrl" alt="">
+      </div>
+      <label class="field">
+        <span>{{ isAmharic ? 'ስም' : 'Name' }}</span>
+        <input type="text" [(ngModel)]="editProduct.name">
+      </label>
+      <div class="row-2">
+        <label class="field">
+          <span>{{ isAmharic ? 'ዋጋ (ብር)' : 'Price (ETB)' }}</span>
+          <input type="number" min="0" [(ngModel)]="editProduct.price">
+        </label>
+        <label class="field">
+          <span>{{ isAmharic ? 'ክምችት' : 'Stock' }}</span>
+          <input type="number" min="0" [(ngModel)]="editProduct.stock">
+        </label>
+      </div>
+      <label class="field">
+        <span>{{ isAmharic ? 'ምድብ' : 'Category' }}</span>
+        <select [(ngModel)]="editProduct.category">
+          <option *ngFor="let c of ['Apparel','Leather','Home','Tech','Beauty']">{{ c }}</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>{{ isAmharic ? 'ምስል URL' : 'Image URL' }}</span>
+        <input type="url" [(ngModel)]="editProduct.imageUrl">
+      </label>
+      <label class="field">
+        <span>{{ isAmharic ? 'ማብራሪያ' : 'Description' }}</span>
+        <textarea rows="3" [(ngModel)]="editProduct.description"></textarea>
+      </label>
+      <label class="field">
+        <span>{{ isAmharic ? 'የሻጭ የቴሌግራም ስም' : 'Seller Telegram' }}</span>
+        <input type="text" [(ngModel)]="editProduct.telegramHandle" placeholder="@myshop">
+      </label>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="ghost-btn" (click)="closeEditProduct()">{{ isAmharic ? 'ውጣ' : 'Cancel' }}</button>
+      <button type="button" class="primary-btn" (click)="saveProduct()">💾 {{ isAmharic ? 'አስቀምጥ' : 'Save changes' }}</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div *ngIf="toast()" class="toast" role="status">
+    <span class="toast-icon">💬</span>
+    <span>{{ toast() }}</span>
+  </div>
+
+  <!-- REVIEW PAYMENT MODAL -->
+<div *ngIf="isReviewOrderOpen" class="modal-backdrop" (click)="closeReviewOrder()"></div>
+<div *ngIf="isReviewOrderOpen" class="edit-modal">
+  <div class="modal-head">
+    <h3>{{ isAmharic ? 'ክፍያ ማረጋገጫ' : 'Review Payment' }}</h3>
+    <button type="button" class="close-btn" (click)="closeReviewOrder()">✕</button>
+  </div>
+  <div *ngIf="reviewOrder" class="modal-body">
+    <p><strong>{{ isAmharic ? 'ትእዛዝ' : 'Order' }}:</strong> {{ reviewOrder.orderNumber || reviewOrder._id }}</p>
+    <p><strong>{{ isAmharic ? 'ገዢ' : 'Buyer' }}:</strong> {{ reviewOrder.customerName }} ({{ reviewOrder.phone }})</p>
+    <p><strong>{{ isAmharic ? 'ጠቅላላ' : 'Amount' }}:</strong> {{ formatCurrency(reviewOrder.totalAmount) }}</p>
+    <p><strong>{{ isAmharic ? 'የክፍያ መንገድ' : 'Payment method' }}:</strong> {{ reviewOrder.paymentMethod }}</p>
+    <p><strong>{{ isAmharic ? 'የግብይት መለያ' : 'Transaction ID' }}:</strong> {{ reviewOrder.transactionId || '—' }}</p>
+    <p><strong>{{ isAmharic ? 'የክፍያ ሁኔታ' : 'Current payment status' }}:</strong> {{ reviewOrder.paymentStatus }}</p>
+
+<div style="margin-top:12px;">
+  <img *ngIf="reviewOrder.receiptImage && !reviewOrder.receiptImage.startsWith('data:application/pdf')"
+    class="receipt-preview-img" [src]="reviewOrder.receiptImage" alt="Receipt">
+
+  <div *ngIf="reviewOrder.receiptImage && reviewOrder.receiptImage.startsWith('data:application/pdf')"
+    style="padding:16px; border:1px solid #dde3ea; border-radius:8px; text-align:center;">
+    <p style="margin-bottom:10px;">📄 {{ isAmharic ? 'ደረሰኙ PDF ፋይል ነው' : 'Receipt is a PDF file' }}</p>
+    <a [href]="reviewOrder.receiptImage" download="receipt.pdf" class="primary-btn" style="display:inline-block; text-decoration:none;">
+      {{ isAmharic ? 'PDF ይክፈቱ / ያውርዱ' : 'Open / Download PDF' }}
+    </a>
+  </div>
+
+  <p *ngIf="!reviewOrder.receiptImage" class="muted">{{ isAmharic ? 'ደረሰኝ አልተያያዘም' : 'No receipt uploaded' }}</p>
+</div>
+    <div class="modal-foot" style="margin-top:16px;">
+      <button type="button" class="ghost-btn" (click)="rejectPayment()">
+        ✕ {{ isAmharic ? 'አትቀበል' : 'Reject' }}
+      </button>
+      <button type="button" class="primary-btn" (click)="approvePayment()">
+        ✓ {{ isAmharic ? 'ተቀበል' : 'Approve' }}
+      </button>
+    </div>
+  </div>
+</div>
+</div>

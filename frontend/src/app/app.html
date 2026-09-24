@@ -1,0 +1,860 @@
+<div class="app">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left" (click)="goHome()">
+      <div class="header-titles">
+        <div class="app-title font-weight-700px">{{ title() }}</div>
+<div class = "announce-bar"> <span>{{ isAmharic ? '1,000 ብር በላይ ግዢ ላይ ነጻ መላኪያ' : 'Free delivery on orders above 1,000 birr' }}</span></div>
+  <div class="header-divider"></div>
+        <div class="app-subtitle">
+          {{ isAmharic ? 'በቴሌግራም የተገነባ የኢትዮጵያ የግዢ ገበያ' : 'Ethiopia\'s Telegram Marketplace' }}
+        </div>
+      </div>
+    </div>
+    
+    <div class="header-right">
+      <button type="button" class="icon-btn toggle-lang" (click)="toggleLanguage()"
+        [title]="isAmharic ? 'Switch to English' : 'አማርኛ ይምረጡ'">
+        {{ isAmharic ? 'EN' : 'አማ' }}
+      </button>
+
+      <button *ngIf="isAdmin" type="button" class="icon-btn admin-btn" (click)="handleAdminClick()"
+        [title]="isAmharic ? 'አድሚን መግቢያ' : 'Admin Dashboard'">
+        admin
+      </button>
+
+      <button *ngIf="isSeller && !isAdmin" type="button" class="icon-btn seller-btn" (click)="handleAccountClick()"
+        [title]="isAmharic ? 'የሻጭ መግቢያ' : 'Seller Dashboard'">
+        seller
+      </button>
+
+      <button type="button" class="icon-btn account-btn" (click)="handleAccountClick()"
+        [title]="isAmharic ? 'መገኘት/መመዝገብ' : 'Account / Sign in'">
+        <span *ngIf="!getUser()">{{ isAmharic ? 'ግባ' : 'Sign in' }}</span>
+        <span *ngIf="getUser()">
+          {{ (getUser()!.fullName || getUser()!.shopName || '').slice(0,8) }}
+        </span>
+      </button>
+
+    <button type="button" class="icon-btn cart-btn" (click)="toggleCart()">
+  <div class="cart-drawn-container">
+    <!-- Drawn Bag Icon -->
+    <span class="cart-bag-drawn"></span>
+    <div class="cart-wheels"></div>
+    <!-- Dynamic Counter Badge -->
+    <span *ngIf="cartService.itemCount() > 0" class="cart-badge-drawn">
+      {{ cartService.itemCount() }}
+    </span>
+  </div>
+</button>
+    </div>
+  </header>
+
+  <!-- HOME PAGE -->
+  <main *ngIf="currentPage === 'home'" class="main">
+    <!-- SEARCH + DELIVERY BAR -->
+    <section class="topbar">
+      <div class="delivery-pill" (click)="openDeliveryModal()">
+        <span class="pin-drawn"></span>
+        <div class="delivery-info">
+          <div class="delivery-label">{{ isAmharic ? 'የማድረሻ ቦታ' : 'Delivery to' }}</div>
+          <div class="delivery-value">{{ selectedDeliveryLocation }}</div>
+        </div>
+        <span class="chev-drawn"></span>
+      </div>
+
+      <div class="search-wrap ">
+        <input
+          type="search"
+          class="search-input"
+          [placeholder]="isAmharic ? 'ቡና፣ ቆዳ፣ ልብስ፣ ሳሙና… ይፈልጉ' : 'Search coffee, leather, clothes, shoes…'"
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch()"
+        >
+        <button type="button" class="search-btn" (click)="onSearch()"></button>
+      </div>
+
+      <select class="sort-select" [(ngModel)]="sortBy" (change)="onSortChange()">
+        <option value="newest">{{ isAmharic ? 'አዲስ' : 'Sort by : Newest' }}</option>
+        <option value="price-asc">{{ isAmharic ? 'ዋጋ - ዝቅተኛ' : 'Price Low → High' }}</option>
+        <option value="price-desc">{{ isAmharic ? 'ዋጋ - ከፍተኛ' : 'Price High → Low' }}</option>
+      </select>
+    </section>
+
+    <!-- CATEGORY CHIPS -->
+    <section class="category-bar">
+      <button
+        *ngFor="let cat of categories"
+        class="chip"
+        [class.chip-active]="selectedCategory === cat.value"
+        (click)="filterCategory(cat.value)"
+      >
+        {{ isAmharic ? cat.am : cat.en }}
+      </button>
+    </section>
+
+    <section class="hero-carousel" (touchstart)="stopCarousel()" (touchend)="startCarousel()">
+      <div class="carousel-viewport">
+        <div
+          class="carousel-slides"
+          [style.transform]="'translateX(' + (-carouselCurrentIndex * 100) + '%)'"
+        >
+          <div
+            *ngFor="let slide of heroCarouselSlides; let i = index"
+            class="carousel-slide"
+            [style.backgroundImage]="'url(' + slide.imageUrl + ')'"
+            (click)="openProductDetail(products()[0] || null)"
+          >
+            <div class="slide-overlay"></div>
+            <div class="slide-content">
+              <!--<div class="slide-tag">
+                {{ i + 1 }}/{{ heroCarouselSlides.length }} · {{ isAmharic ? 'በተለምዶ የሚሸጥ' : 'Featured' }}
+              </div> -->
+              <h1 class="slide-title">{{ isAmharic ? slide.title.am : slide.title.en }}</h1>
+              <p class="slide-subtitle">{{ isAmharic ? slide.subtitle.am : slide.subtitle.en }}</p>
+              <a class="slide-cta" (click)="openQuickPostModal()" *ngIf="isSeller">
+                {{ isAmharic ? 'እቃዎትን አስገባ' : 'List your products' }} →
+              </a>
+              <a class="slide-cta" (click)="openSigninModal('signup')" *ngIf="!getUser()">
+                {{ isAmharic ? 'አሁኑኑ ይመዝገቡ' : 'Create account →' }}
+              </a>
+              <a class="slide-cta" (click)="filterCategory('All')" *ngIf="getUser() && !isSeller">
+                {{ isAmharic ? 'ሁሉም ምርቶችን ይመልከቱ' : 'Browse all products →' }}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carousel nav arrows -->
+      <button type="button" class="carousel-arrow left" (click)="prevSlide()" aria-label="Previous">‹</button>
+      <button type="button" class="carousel-arrow right" (click)="nextSlide()" aria-label="Next">›</button>
+
+      <!-- Indicators -->
+      <div class="carousel-dots">
+        <button
+          *ngFor="let slide of heroCarouselSlides; let i = index"
+          type="button"
+          class="dot"
+          [class.dot-active]="carouselCurrentIndex === i"
+          (click)="goToSlide(i)"
+          [attr.aria-label]="'Go to slide ' + (i + 1)"
+        ></button>
+      </div>
+    </section>
+
+    <!-- SELLER QUICK POST (only if seller/logged in) -->
+    <section *ngIf="isSeller" class="seller-strip">
+      <div class="seller-strip-text">
+        <span class="emoji">📢</span>
+        <strong>{{ isAmharic ? 'በአዲስ አበባ ሻጭ ነዎት?' : 'Selling in Addis Ababa?' }}</strong>
+        <span>{{ isAmharic ? 'እቃዎትን በሴኮንዶች ዝርዝር ያድርጉ፣ ተጠቃሚዎች በቴሌግራም ይያዙዎታል።' : 'List your product in seconds. Customers reach you via Telegram.' }}</span>
+      </div>
+      <button type="button" class="primary-btn" (click)="openQuickPostModal()">
+        + {{ isAmharic ? 'አዲስ እቃ ልክ' : 'Post a product' }}
+      </button>
+    </section>
+
+    <!-- PRODUCT GRID -->
+    <section class="products-section">
+      <div class="section-head">
+        <h2>
+          <span class="sec-title-main">
+            {{ selectedCategory === 'All'
+              ? (isAmharic ? 'ሁሉም የሚገኙት ምርቶች' : 'All Products')
+              : selectedCategory }}
+          </span>
+          <span class="sec-title-count">{{ products().length }} {{ isAmharic ? 'እቃዎች' : 'items' }}</span>
+        </h2>
+        <a class="shop-link" [href]="botLink" target="_blank" rel="noopener">
+           {{ isAmharic ? 'በቦት ይግዙ' : 'Shop via Bot' }}
+        </a>
+      </div>
+
+      <div *ngIf="isLoadingProducts()" class="loader">
+        <div class="spinner"></div>
+        <span>{{ isAmharic ? 'ምርቶች በመጫን ላይ…' : 'Loading products…' }}</span>
+      </div>
+
+      <div *ngIf="!isLoadingProducts() && products().length === 0" class="empty-state">
+        <div class="empty-emoji">📦</div>
+        <h3>{{ isAmharic ? 'ምንም እቃ አልተገኘም' : 'No products found' }}</h3>
+        <p>{{ isAmharic ? 'የፍለጋ ቃልዎን ይቀይሩ ወይም ሌላ ምድብ ይምረጡ' : 'Try a different search or category' }}</p>
+      </div>
+
+      <div *ngIf="!isLoadingProducts() && products().length > 0" class="products-grid">
+        <article
+          *ngFor="let product of products() | slice:0:48"
+          class="product-card"
+          (click)="openProductDetail(product)"
+        >
+          <div class="product-image-wrap">
+            <img class="product-image" [src]="product.imageUrl" [alt]="product.name" loading="lazy"
+              onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80';">
+            <div
+              *ngIf="getAvailableProductStock(product) <= 10"
+              class="stock-badge"
+              [class.stock-low]="getAvailableProductStock(product) <= 3"
+              [class.stock-out]="getAvailableProductStock(product) === 0"
+            >
+              {{ getAvailableProductStock(product) === 0
+                ? (isAmharic ? 'ተጨናነቋል' : 'Sold out')
+                : (isAmharic ? 'ቀሪ: ' : 'Stock: ') + getAvailableProductStock(product) }}
+            </div>
+            <button
+              *ngIf="product.telegramHandle"
+              type="button"
+              class="tg-chip"
+              (click)="openTelegramSeller(product.telegramHandle, $event)"
+            >
+              💬 {{ isAmharic ? 'ሻጭ' : 'Seller' }}
+            </button>
+          </div>
+
+          <div class="product-info">
+            <h3 class="product-name">{{ product.name }}</h3>
+            <div class="product-price">
+              <span class="birr">ብር</span>
+              <span class="amount">{{ product.price | number:'1.0-0':'en-US' }}</span>
+            </div>
+            <div class="product-meta">
+              <span class="cat">{{ product.category }}</span>
+              <span
+                *ngIf="product.stock !== undefined"
+                class="stock-inline"
+                [class.stock-inline-low]="getAvailableProductStock(product) <= 3"
+                [class.stock-inline-out]="getAvailableProductStock(product) === 0"
+              >
+                {{ getAvailableProductStock(product) === 0
+                  ? '· ' + (isAmharic ? 'ክምችት የለም' : 'No stock')
+                  : '· ' + getAvailableProductStock(product) + ' ' + (isAmharic ? 'ቀሪ' : 'in stock') }}
+              </span>
+            </div>
+
+            <div class="card-actions">
+              <ng-container *ngIf="getAvailableProductStock(product) > 0">
+                <button
+                  type="button"
+                  class="card-btn add-btn"
+                  [disabled]="!hasStock(product, 1)"
+                  (click)="addToCart(product, 1, $event)"
+                >
+                  🛒 {{ isAmharic ? 'አክል' : 'Add' }}
+                </button>
+                <button
+                  type="button"
+                  class="card-btn buy-btn"
+                  [disabled]="!hasStock(product, 1)"
+                  (click)="quickBuy(product, $event)"
+                >
+                  {{ isAmharic ? 'ቀጥታ ግዢ' : 'Buy now' }}
+                </button>
+              </ng-container>
+
+              <button
+                *ngIf="getAvailableProductStock(product) === 0"
+                type="button"
+                class="card-btn waitlist-btn w-full"
+                [class.waitlist-btn-active]="isWaitlisted(product)"
+                (click)="openWaitlistModal(product, undefined, $event)"
+              >
+                {{ isWaitlisted(product)
+                  ? (isAmharic ? '✓ ተመዝግበዋል' : '✓ Waitlisted')
+                  : (isAmharic ? '📋 ተጠባባቂ ዝርዝር' : '📋 Join Waitlist') }}
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Footer / info -->
+    <footer class="app-footer">
+      <div class="footer-row">
+        <div>
+          <strong>{{ title() }}</strong> ·
+          {{ isAmharic ? 'የኢትዮጵያ የቴሌግራም ኢ-ኮሜርስ' : 'Ethiopian Telegram E-Commerce' }}
+        </div>
+        <a class="footer-link" [href]="botLink" target="_blank" rel="noopener">
+           {{ isAmharic ? 'ቦት ይከታተሉ @' + botUsername : 'Open bot @' + botUsername }}
+        </a>
+      </div>
+      <div class="footer-row subtle">
+        <span>© {{ (2020 + 5) }} TeleGebeya ·</span>
+        <span>{{ isAmharic ? 'ቡና በእጅጋ የሰው ልብስ ቀስተኛ' : 'Hand-picked Ethiopian sellers' }}</span>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ACCOUNT PAGE -->
+  <main *ngIf="currentPage === 'account'" class="main">
+    <app-account
+      (goHome)="goHome()"
+      (goAdmin)="isAdmin ? (currentPage='admin') : null"
+      (openBotBuyer)="openTelegramSeller('@' + botUsername)"
+    ></app-account>
+  </main>
+
+  <!-- ADMIN PAGE -->
+  <main *ngIf="currentPage === 'admin'" class="main">
+    <app-admin (goHome)="goHome()"></app-admin>
+  </main>
+
+  <!-- SIDE CART DRAWER -->
+  <aside *ngIf="isCartOpen" class="cart-drawer" (click)="toggleCart()"></aside>
+  <aside *ngIf="isCartOpen" class="cart-panel" role="dialog" aria-label="Cart">
+    <div class="cart-head">
+      <h3>{{ isAmharic ? 'ቅርጫትዎ' : 'Your Cart' }}</h3>
+      <button type="button" class="close-btn" (click)="toggleCart()">✕</button>
+    </div>
+
+    <div *ngIf="cartService.items().length === 0" class="cart-empty">
+      <div class="empty-emoji">🛒</div>
+      <h4>{{ isAmharic ? 'ቅርጫትዎ ባዶ ነው' : 'Your cart is empty' }}</h4>
+      <p>{{ isAmharic ? 'ምርቶችን ይመልከቱ እና ወደ ቅርጫት ያክሉ' : 'Browse products and add them here' }}</p>
+      <button type="button" class="primary-btn" (click)="toggleCart()">{{ isAmharic ? 'ተመልከት' : 'Browse' }}</button>
+    </div>
+
+    <div *ngIf="cartService.items().length > 0" class="cart-list">
+      <div *ngFor="let item of cartService.items()" class="cart-item">
+        <img class="cart-item-img" [src]="item.imageUrl" alt="">
+        <div class="cart-item-body">
+          <div class="cart-item-name">{{ item.name }}</div>
+          <div class="cart-item-price">ብር {{ item.price }}</div>
+        </div>
+        <div class="cart-qty-ctrl">
+          <button type="button" (click)="cartService.changeQuantity(item, -1)">−</button>
+          <span>{{ item.quantity }}</span>
+          <button type="button" [disabled]="!hasStock(item, item.quantity + 1)" (click)="cartService.changeQuantity(item, 1)">+</button>
+        </div>
+        <button type="button" class="cart-remove" (click)="cartService.removeFromCart(item)">✕</button>
+      </div>
+    </div>
+
+    <div *ngIf="cartService.items().length > 0" class="cart-foot">
+      <div class="cart-total">
+        <span>{{ isAmharic ? 'ጠቅላላ ዋጋ' : 'Subtotal' }}</span>
+        <strong>ብር {{ cartService.totalAmount() | number:'1.0-0':'en-US' }}</strong>
+      </div>
+      <button type="button" class="primary-btn big-btn" (click)="openCheckoutModal()">
+        {{ isAmharic ? 'ሎግ ለመፍጠር' : 'Checkout' }} ({{ cartService.itemCount() }})
+      </button>
+    </div>
+  </aside>
+
+  <!-- DELIVERY LOCATION MODAL -->
+  <div *ngIf="isDeliveryModalOpen" class="modal-backdrop" (click)="closeDeliveryModal()"></div>
+  <div *ngIf="isDeliveryModalOpen" class="modal modal-sm">
+    <div class="modal-head">
+      <h3>{{ isAmharic ? 'የማድረሻ ቦታ ይምረጡ' : 'Choose delivery location' }}</h3>
+      <button type="button" class="close-btn" (click)="closeDeliveryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field">
+        <span>{{ isAmharic ? 'ስብከት / ክፍለ ከተማ' : 'Subcity / Kifle Ketema' }}</span>
+        <select [(ngModel)]="deliveryDetails.subcity">
+          <option *ngFor="let s of subcities">{{ s }}</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>{{ isAmharic ? 'የገዳይ ስም' : 'Street / Woreda' }}</span>
+        <input [(ngModel)]="deliveryDetails.streetAddress" type="text"
+          [placeholder]="isAmharic ? 'ምሳሌ: 22 አቡነ ገብረ ኪዳን' : 'Street name or woreda'">
+      </label>
+      <label class="field">
+        <span>{{ isAmharic ? 'የቤት ቁጥር' : 'House / Apartment' }}</span>
+        <input [(ngModel)]="deliveryDetails.houseNumber" type="text"
+          [placeholder]="isAmharic ? 'ብ.ቁ. A-04 / 123' : 'Apartment or house number'">
+      </label>
+      <label class="field">
+        <span>{{ isAmharic ? 'ማስታወሻ' : 'Delivery notes (optional)' }}</span>
+        <textarea [(ngModel)]="deliveryDetails.notes" rows="2"
+          [placeholder]="isAmharic ? 'ናዑል፣ ቤት ውስጥ ገባዉ…' : 'Gate code, landmark, etc.'"></textarea>
+      </label>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="ghost-btn" (click)="closeDeliveryModal()">{{ isAmharic ? 'ውጣ' : 'Cancel' }}</button>
+      <button type="button" class="primary-btn" (click)="saveDeliveryLocation()">{{ isAmharic ? 'አስቀምጥ' : 'Save' }}</button>
+    </div>
+  </div>
+
+  <!-- SIGNIN / SIGNUP MODAL -->
+  <div *ngIf="isSigninModalOpen" class="modal-backdrop" (click)="closeSigninModal()"></div>
+  <div *ngIf="isSigninModalOpen" class="modal">
+    <div class="modal-head">
+      <h3>{{ authMode === 'signin' ? (isAmharic ? 'ግባ' : 'Sign in') : (isAmharic ? 'መመዝገብ' : 'Create account') }}</h3>
+      <button type="button" class="close-btn" (click)="closeSigninModal()">✕</button>
+    </div>
+
+    <div class="auth-tabs">
+      <button type="button" class="tab" [class.tab-active]="authMode === 'signin'"
+        (click)="authMode = 'signin'">{{ isAmharic ? 'ግባ' : 'Sign in' }}</button>
+      <button type="button" class="tab" [class.tab-active]="authMode === 'signup'"
+        (click)="authMode = 'signup'">{{ isAmharic ? 'መመዝገብ' : 'Create account' }}</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- SIGNIN -->
+      <form *ngIf="authMode === 'signin'" (ngSubmit)="submitSignin()" class="auth-form">
+        <label class="field">
+          <span>{{ isAmharic ? 'ስልክ ቁጥር' : 'Phone number' }}</span>
+          <input type="tel" [(ngModel)]="signinData.phone" name="phone" required
+            [placeholder]="isAmharic ? '09xxxxxxxx' : '09xxxxxxxx'">
+        </label>
+        <label class="field">
+          <span>{{ isAmharic ? 'አለማ ስኬት' : 'Password' }}</span>
+          <input type="password" [(ngModel)]="signinData.password" name="password" required
+            [placeholder]="isAmharic ? '••••••••' : '••••••••'">
+        </label>
+        <div *ngIf="authErrorMessage" class="auth-error">⚠ {{ authErrorMessage }}</div>
+        <button type="submit" class="primary-btn big-btn w-full">{{ isAmharic ? 'ግባ' : 'Sign in' }}</button>
+
+        <div class="demo-toggles">
+          <span class="demo-label">{{ isAmharic ? 'ደሞ ግባዎች' : 'Demo sign-in (offline-safe)' }}:</span>
+          <button type="button" class="ghost-btn small" (click)="demoLogin('buyer')">🧍 {{ isAmharic ? 'ተጠቃሚ' : 'Buyer' }}</button>
+          <button type="button" class="ghost-btn small" (click)="demoLogin('seller')">🏪 {{ isAmharic ? 'ሻጭ' : 'Seller' }}</button>
+          <button type="button" class="ghost-btn small" (click)="demoLogin('admin')">⚙ {{ isAmharic ? 'አድሚን' : 'Admin' }}</button>
+        </div>
+      </form>
+
+      <!-- SIGNUP -->
+      <form *ngIf="authMode === 'signup'" (ngSubmit)="submitSignup()" class="auth-form">
+        <div class="role-tabs">
+          <button
+            type="button" class="role-tab"
+            [class.role-tab-active]="selectedRole === 'buyer'"
+            (click)="selectedRole = 'buyer'"
+          >🧍 {{ isAmharic ? 'ተጠቃሚ' : 'Buyer' }}</button>
+          <button
+            type="button" class="role-tab"
+            [class.role-tab-active]="selectedRole === 'seller'"
+            (click)="selectedRole = 'seller'"
+          >🏪 {{ isAmharic ? 'ሻጭ' : 'Seller' }}</button>
+        </div>
+
+        <label class="field">
+          <span>{{ isAmharic ? 'ሙሉ ስም' : 'Full name' }}</span>
+          <input type="text" [(ngModel)]="signupData.fullName" name="fullName" required>
+        </label>
+        <label class="field">
+          <span>{{ isAmharic ? 'ስልክ ቁጥር' : 'Phone number' }}</span>
+          <input type="tel" [(ngModel)]="signupData.phone" name="phone" required placeholder="09xxxxxxxx">
+        </label>
+        <label class="field">
+          <span>{{ isAmharic ? 'አለማ ስኬት' : 'Password' }}</span>
+          <input type="password" [(ngModel)]="signupData.password" name="password" required minlength="6">
+        </label>
+
+        <ng-container *ngIf="selectedRole === 'seller'">
+          <label class="field">
+            <span>{{ isAmharic ? 'የሱቅ ስም' : 'Shop name' }}</span>
+            <input type="text" [(ngModel)]="signupData.shopName" name="shopName">
+          </label>
+          <label class="field">
+            <span>{{ isAmharic ? 'የቴሌግራም መልዕክት መቆጣጠሪያ' : 'Telegram username (starts with @)' }}</span>
+            <input type="text" [(ngModel)]="signupData.telegramHandle" name="telegramHandle" placeholder="@yourshop">
+          </label>
+        </ng-container>
+
+        <div *ngIf="authErrorMessage" class="auth-error">⚠ {{ authErrorMessage }}</div>
+        <button type="submit" class="primary-btn big-btn w-full">{{ isAmharic ? 'መመዝገብ' : 'Create account' }}</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PRODUCT DETAIL MODAL -->
+  <div *ngIf="isProductDetailModalOpen" class="modal-backdrop" (click)="closeProductDetail()"></div>
+  <div *ngIf="isProductDetailModalOpen" class="modal detail-modal">
+    <div class="modal-head">
+      <h3>{{ selectedProduct?.name }}</h3>
+      <button type="button" class="close-btn" (click)="closeProductDetail()">✕</button>
+    </div>
+    <div *ngIf="selectedProduct" class="modal-body detail-body">
+      <img class="detail-img" [src]="selectedProduct.imageUrl" [alt]="selectedProduct.name">
+      <div class="detail-info">
+        <div class="detail-price">
+          <span class="birr big-birr">ብር</span>
+          <span class="big-amount">{{ selectedProduct.price | number:'1.0-0':'en-US' }}</span>
+        </div>
+
+        <div class="detail-stock">
+          <ng-container *ngIf="selectedProduct.stock !== undefined">
+            <span
+              class="stock-pill"
+              [class.stock-pill-low]="getAvailableProductStock(selectedProduct, selectedColor) <= 3"
+              [class.stock-pill-out]="getAvailableProductStock(selectedProduct, selectedColor) === 0"
+            >
+              {{ getAvailableProductStock(selectedProduct, selectedColor) === 0
+                ? (isAmharic ? 'ክምችት የለም — Sold out' : 'Sold out')
+                : (getAvailableProductStock(selectedProduct, selectedColor) + ' ' + (isAmharic ? 'ቀሪ ክምችት' : 'in stock')) }}
+            </span>
+          </ng-container>
+          <span class="category-pill">{{ selectedProduct.category }}</span>
+        </div>
+
+        <div *ngIf="getProductColorOptions(selectedProduct).length > 0" class="detail-color-picker">
+          <label>{{ isAmharic ? 'ቀለም ይምረጡ' : 'Choose color' }}</label>
+          <div class="color-options">
+            <button
+              *ngFor="let option of getProductColorOptions(selectedProduct)"
+              type="button"
+              class="color-option"
+              [class.color-option-active]="selectedColor === option.name"
+              [disabled]="option.stock === 0"
+              (click)="selectedColor = option.name"
+            >
+              <span>{{ option.name }}</span>
+              <small>{{ option.stock }} {{ isAmharic ? 'ቀሪ' : 'left' }}</small>
+            </button>
+          </div>
+        </div>
+
+        <p class="detail-desc">{{ selectedProduct.description || (isAmharic ? 'ምርቱ በጥብቅ የተመረጠ በአዲስ አበባ ከአደንዛዥ ዛፍ በኋላ። እቃውን በቴሌግራም በሰጡዎት የሻጭ መገናኛ መነጽር ሊደርስዎት ይችላል።' : 'Carefully selected from trusted Ethiopian merchants. Chat directly with the seller on Telegram using the link below.') }}</p>
+
+        <div *ngIf="selectedProduct.telegramHandle || selectedProduct.sellerName" class="seller-card">
+          <div class="seller-card-left">
+            <div class="seller-avatar">{{ (selectedProduct.sellerName || 'S').slice(0,1).toUpperCase() }}</div>
+            <div>
+              <div class="seller-name">{{ selectedProduct.sellerName || (isAmharic ? 'የተገነባ ሻጭ' : 'Verified seller') }}</div>
+              <div class="seller-handle">{{ selectedProduct.telegramHandle || '@telegebeya_bot' }}</div>
+            </div>
+          </div>
+          <a type="button" class="primary-btn ghostish" (click)="openTelegramSeller(selectedProduct.telegramHandle, $event)"
+             [href]="'https://t.me/' + ((selectedProduct.telegramHandle || 'telegebeya_bot') | slice:1)" target="_blank">
+            💬 {{ isAmharic ? 'በቴሌግራም ይናገሩ' : 'Chat on Telegram' }}
+          </a>
+        </div>
+
+        <div class="qty-row">
+          <label>{{ isAmharic ? 'ብዛት' : 'Quantity' }}</label>
+          <div class="qty-ctrl">
+            <button type="button" (click)="detailQuantity = Math.max(1, detailQuantity - 1)">−</button>
+            <input type="number" min="1" [max]="getProductColorStock(selectedProduct, selectedColor) || 999" [(ngModel)]="detailQuantity">
+            <button type="button" [disabled]="!hasStock(selectedProduct, detailQuantity + 1, selectedColor)"
+              (click)="detailQuantity = Math.min(getProductColorStock(selectedProduct, selectedColor) || 999, detailQuantity + 1)">+</button>
+          </div>
+          <span *ngIf="selectedProduct.stock !== undefined && detailQuantity > (getProductColorStock(selectedProduct, selectedColor) || 0)" class="stock-warn">
+            {{ isAmharic ? 'በክምችት የለም' : 'Not enough stock' }}
+          </span>
+        </div>
+
+        <div class="detail-actions">
+          <ng-container *ngIf="getAvailableProductStock(selectedProduct, selectedColor) > 0">
+            <button
+              type="button"
+              class="primary-btn big-btn"
+              [disabled]="!hasStock(selectedProduct, detailQuantity, selectedColor)"
+              (click)="addToCart(selectedProduct, detailQuantity, $event, selectedColor); closeProductDetail(); toggleCart();"
+            >
+              🛒 {{ isAmharic ? 'ወደ ቅርጫት አክል' : 'Add to cart' }}
+            </button>
+            <button
+              type="button"
+              class="accent-btn big-btn"
+              [disabled]="!hasStock(selectedProduct, detailQuantity, selectedColor)"
+              (click)="addToCart(selectedProduct, detailQuantity, $event, selectedColor); closeProductDetail(); openCheckoutModal();"
+            >
+              ⚡ {{ isAmharic ? 'ቀጥታ ግዢ' : 'Buy now' }}
+            </button>
+          </ng-container>
+
+          <div *ngIf="getAvailableProductStock(selectedProduct, selectedColor) === 0" class="waitlist-box">
+            <p class="waitlist-hint">
+              {{ isAmharic
+                ? 'ይህ እቃ በአሁኑ ወቅት ክምችት አልቋል። ሲገባ ቀድመው እንዲያውቁ እና እንዲገዙ በተጠባባቂ ዝርዝር ውስጥ ይመዝገቡ!'
+                : 'This item is currently out of stock. Join the waitlist to be notified first as soon as it is back in stock!' }}
+            </p>
+            <button
+              type="button"
+              class="primary-btn big-btn waitlist-detail-btn"
+              [class.waitlist-btn-active]="isWaitlisted(selectedProduct, selectedColor)"
+              (click)="openWaitlistModal(selectedProduct, selectedColor, $event)"
+            >
+              {{ isWaitlisted(selectedProduct, selectedColor)
+                ? (isAmharic ? '✓ በተጠባባቂ ዝርዝር ውስጥ ተመዝግበዋል' : '✓ You are on the Waitlist')
+                : (isAmharic ? '📋 በተጠባባቂ ዝርዝር ውስጥ ይግቡ' : '📋 Join Waitlist (Get Notified)') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELLER QUICK POST MODAL -->
+  <div *ngIf="isQuickPostModalOpen" class="modal-backdrop" (click)="closeQuickPostModal()"></div>
+  <div *ngIf="isQuickPostModalOpen" class="modal">
+    <div class="modal-head">
+      <h3>{{ isAmharic ? 'አዲስ እቃ ያስገቡ' : 'Post a product' }}</h3>
+      <button type="button" class="close-btn" (click)="closeQuickPostModal()">✕</button>
+    </div>
+    <form (ngSubmit)="submitSellerPost()" class="modal-body">
+      <label class="field">
+        <span>{{ isAmharic ? 'የእቃው ስም' : 'Product name' }}</span>
+        <input type="text" [(ngModel)]="sellerPost.name" name="name" required
+          [placeholder]="isAmharic ? 'ምሳሌ: የቦዳ ከረማ የተዘጋጀ ቆዳ' : 'Handmade leather wallet'">
+      </label>
+      <div class="row-2">
+        <label class="field">
+          <span>{{ isAmharic ? 'ዋጋ (ብር)' : 'Price (ETB)' }}</span>
+          <input type="number" min="1" [(ngModel)]="sellerPost.price" name="price" required placeholder="1500">
+        </label>
+        <label class="field">
+          <span>{{ isAmharic ? 'ምድብ' : 'Category' }}</span>
+          <select [(ngModel)]="sellerPost.category" name="category">
+            <option *ngFor="let c of categories | slice:1">{{ c.value }}</option>
+          </select>
+        </label>
+      </div>
+      <label class="field">
+        <span>{{ isAmharic ? 'የእቃው ማብራሪያ' : 'Description' }}</span>
+        <textarea [(ngModel)]="sellerPost.description" name="description" rows="2"></textarea>
+      </label>
+      <div class="field">
+        <span>{{ isAmharic ? 'ቀለሞች እና ክምችት' : 'Colors and stock' }}</span>
+        <div class="color-stock-list">
+          <div *ngFor="let color of sellerPost.colors; let i = index; trackBy: trackByColorIndex" class="color-stock-row">
+            <input type="text" [(ngModel)]="sellerPost.colors[i].name" [name]="'colorName' + i" placeholder="Black">
+            <input type="number" min="0" [(ngModel)]="sellerPost.colors[i].stock" [name]="'colorStock' + i" placeholder="25">
+            <button type="button" class="ghost-btn small" (click)="removeSellerColor(i)">−</button>
+          </div>
+        </div>
+        <button type="button" class="ghost-btn small" (click)="addSellerColor()">+ {{ isAmharic ? 'ቀለም ጨምር' : 'Add color' }}</button>
+      </div>
+    <div class="form-group">
+  <label><b>Upload Product Image:</b></label>
+  <input type="file" (change)="onFileSelected($event)" accept="image/*" />
+</div>
+
+<!-- Preview chosen image -->
+<div *ngIf="imagePreview" class="preview">
+  <img [src]="imagePreview" alt="Preview" style="max-width: 150px; margin-top: 10px;" />
+</div>
+      <label class="field">
+        <span>{{ isAmharic ? 'የቴሌግራም መለያ ስም' : 'Telegram username (starts with @)' }}</span>
+        <input type="text" [(ngModel)]="sellerPost.telegramHandle" name="telegramHandle" placeholder="@your_shop">
+      </label>
+      <div class="modal-foot">
+        <button type="button" class="ghost-btn" (click)="closeQuickPostModal()">{{ isAmharic ? 'ውጣ' : 'Cancel' }}</button>
+        <button type="submit" class="primary-btn">+ {{ isAmharic ? 'እቃውን ልክ' : 'Post product' }}</button>
+      </div>
+    
+      <div class="payment-setup-section" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+    <h4>{{ isAmharic ? 'የመቀበያ አካውንት መረጃ' : 'Seller Payout Accounts' }}</h4>
+
+    <label class="field">
+      <span>{{ isAmharic ? 'የቴሌብር ስልክ ቁጥር' : 'Telebirr Phone Number' }}</span>
+      <input type="tel" [(ngModel)]="sellerPost.telebirrPhone" name="sellerTelebirr" placeholder="09xxxxxxxx">
+    </label>
+
+    <label class="field" style="margin-top: 10px;">
+      <span>{{ isAmharic ? 'የCBE ሂሳብ ቁጥር (13 ዲጂት)' : 'CBE Account Number (13 Digits)' }}</span>
+      <input type="text" [(ngModel)]="sellerPost.cbeAccount" name="sellerCbe" placeholder="1000XXXXXXXXX">
+    </label>
+  </div>
+    
+    </form>
+  </div>
+
+  <!-- CHECKOUT MODAL -->
+  <div *ngIf="isCheckoutModalOpen" class="modal-backdrop" (click)="closeCheckoutModal()"></div>
+  <div *ngIf="isCheckoutModalOpen" class="modal checkout-modal">
+    <div class="modal-head">
+      <h3>{{ isAmharic ? 'ትእዛዝ ለማስፈጸም' : 'Checkout' }}</h3>
+      <button type="button" class="close-btn" (click)="closeCheckoutModal()">✕</button>
+    </div>
+
+    <form (ngSubmit)="submitOrder()" class="modal-body">
+
+      <section class="co-address-section">
+  <h4>{{ isAmharic ? 'የማድረሻ አድራሻ' : 'Delivery address' }}</h4>
+  <p style="font-size:14px;color:#444;">
+    {{ checkoutForm.streetAddress || checkoutForm.houseNumber
+       ? (checkoutForm.subcity + ', ' + checkoutForm.streetAddress + ' House #' + checkoutForm.houseNumber)
+       : (isAmharic ? 'አድራሻ አልተሞላም' : 'No address set yet') }}
+  </p>
+  <button type="button" class="ghost-btn small" (click)="closeCheckoutModal(); openDeliveryModal();">
+    {{ isAmharic ? 'አድራሻ ቀይር' : 'Edit address' }}
+  </button>
+</section>
+
+      <section class="co-section">
+  <h4>{{ isAmharic ? 'የክፍያ መንገድ' : 'Payment method' }}</h4>
+  <div class="payment-tiles">
+    <label
+      class="payment-tile"
+      [class.payment-tile-active]="checkoutForm.paymentMethod === 'telebirr'"
+    >
+      <input type="radio" name="pay" [(ngModel)]="checkoutForm.paymentMethod" value="telebirr" style="display:none">
+      <div (click)="checkoutForm.paymentMethod = 'telebirr'">
+        <div class="pay-logo telebirr-logo">💸 Telebirr</div>
+        <div class="pay-desc">{{ isAmharic ? 'በሞባይል ማስተላለፍ እንዲከፍሉ መንገድ' : 'Mobile money transfer' }}</div>
+      </div>
+    </label>
+
+    <label
+      class="payment-tile"
+      [class.payment-tile-active]="checkoutForm.paymentMethod === 'cbe_birr'"
+    >
+      <input type="radio" name="pay" [(ngModel)]="checkoutForm.paymentMethod" value="cbe_birr" style="display:none">
+      <div (click)="checkoutForm.paymentMethod = 'cbe_birr'">
+        <div class="pay-logo cbe-logo">🏦 CBE Birr</div>
+        <div class="pay-desc">{{ isAmharic ? 'በኮሜርሻል ባንክ የኢትዮጵያ ብር' : 'Commercial Bank of Ethiopia mobile wallet' }}</div>
+      </div>
+    </label>
+
+    <label
+      class="payment-tile"
+      [class.payment-tile-active]="checkoutForm.paymentMethod === 'cash_on_delivery'"
+    >
+      <input type="radio" name="pay" [(ngModel)]="checkoutForm.paymentMethod" value="cash_on_delivery" style="display:none">
+      <div (click)="checkoutForm.paymentMethod = 'cash_on_delivery'">
+        <div class="pay-logo cod-logo">💵 COD</div>
+        <div class="pay-desc">{{ isAmharic ? 'እቃው በመደርስ ከፍ' : 'Pay when you receive it' }}</div>
+      </div>
+    </label>
+  </div>
+
+  <!-- ADMIN TELEBIRR DISPLAY -->
+  <div *ngIf="checkoutForm.paymentMethod === 'telebirr'" style="background: #eef9ff; padding: 12px; border-radius: 6px; margin: 15px 0; border: 1px solid #b3e5fc;">
+    <p style="margin: 0; font-size: 13px; color: #555;">{{ isAmharic ? 'ገንዘቡን ወደ የአድሚን ቴሌብር ቁጥር ይላኩ:' : 'Transfer funds to Admin Telebirr:' }}</p>
+   <p style="font-size: 18px; color: #0088cc; font-weight: bold; margin: 4px 0;">
+  {{ configService.config.adminTelebirrNumber || '0911000000' }}
+</p>
+  </div>
+
+  <!-- ADMIN CBE DISPLAY -->
+  <div *ngIf="checkoutForm.paymentMethod === 'cbe_birr'" style="background: #f4f6f8; padding: 12px; border-radius: 6px; margin: 15px 0; border: 1px solid #ddd;">
+    <p style="margin: 0; font-size: 13px; color: #555;">{{ isAmharic ? 'ገንዘቡን ወደ የአድሚን CBE ሂሳብ ቁጥር ይላኩ:' : 'Transfer funds to Admin CBE Account:' }}</p>
+   <p style="font-size: 18px; color: #107c41; font-weight: bold; margin: 4px 0;">
+  {{ configService.config.adminCbeAccount || '1000123456789' }}
+  </p>
+  </div>
+
+  <!-- BUYER PHONE INPUT -->
+  <label *ngIf="checkoutForm.paymentMethod === 'telebirr' || checkoutForm.paymentMethod === 'cbe_birr'" class="field">
+    <span>{{ isAmharic ? 'የእርስዎ ስልክ ቁጥር (የከፈሉበት)' : 'Your Phone Number (Used for Payment)' }}</span>
+    <input type="tel" [(ngModel)]="checkoutForm.telebirrPhone" name="telebirrPhone" placeholder="09xxxxxxxx">
+  </label>
+
+  <!-- RECEIPT UPLOAD -->
+  <label *ngIf="checkoutForm.paymentMethod === 'telebirr' || checkoutForm.paymentMethod === 'cbe_birr'" class="field" style="margin-top: 15px;">
+    <span>{{ isAmharic ? 'የክፍያ ደረሰኝ (ስክሪንሽት) ይጫኑ' : 'Upload Transfer Receipt (Screenshot)' }}</span>
+    <input type="file" (change)="onReceiptSelected($event)" accept="image/*" style="margin-top: 5px;">
+  </label>
+
+  <!-- RECEIPT PREVIEW -->
+  <div *ngIf="receiptBase64 && (checkoutForm.paymentMethod === 'telebirr' || checkoutForm.paymentMethod === 'cbe_birr')" style="margin-top: 10px;">
+    <img [src]="receiptBase64" alt="Receipt Preview" style="max-width: 150px; border-radius: 6px; border: 1px solid #ccc;">
+  </div>
+</section>
+
+      <section class="co-summary">
+        <div class="summary-row">
+          <span>{{ isAmharic ? 'እቃዎች (' + cartService.itemCount() + ')' : 'Items (' + cartService.itemCount() + ')' }}</span>
+          <span>ብር {{ cartService.totalAmount() | number:'1.0-0':'en-US' }}</span>
+        </div>
+        <div class="summary-row">
+          <span>{{ isAmharic ? 'መላኪያ' : 'Delivery' }}</span>
+          <span>{{ isAmharic ? 'ሐዲስ ከፍተኛ (Addis Ababa)' : 'Standard (Addis Ababa)' }}</span>
+        </div>
+        <div class="summary-row total">
+          <strong>{{ isAmharic ? 'ጠቅላላ' : 'Total' }}</strong>
+          <strong class="tot-amount">ብር {{ cartService.totalAmount() | number:'1.0-0':'en-US' }}</strong>
+        </div>
+      </section>
+
+      <div class="modal-foot">
+        <button type="button" class="ghost-btn" (click)="closeCheckoutModal()">{{ isAmharic ? 'ውጣ' : 'Cancel' }}</button>
+        <button type="submit" class="primary-btn big-btn" [disabled]="isSubmittingOrder">
+          <span *ngIf="!isSubmittingOrder">{{ isAmharic ? 'ትእዛዝ ያስገቡ' : 'Place order' }}</span>
+          <span *ngIf="isSubmittingOrder">{{ isAmharic ? 'በመላክ ላይ…' : 'Placing order…' }}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ORDER SUCCESS MODAL -->
+  <div *ngIf="isOrderSuccessModalOpen" class="modal-backdrop" (click)="closeOrderSuccessModal()"></div>
+  <div *ngIf="isOrderSuccessModalOpen" class="modal success-modal">
+    <div class="success-hero">
+      <div class="check-ring">✓</div>
+      <h3>{{ isAmharic ? 'ትእዛዝዎ በተሳካ ሁኔታ ተልኳል!' : 'Order placed successfully!' }}</h3>
+      <p *ngIf="confirmedOrder?.orderNumber">
+        {{ isAmharic ? 'የትእዛዝ ቁጥርዎ: ' : 'Order #' }}
+        <strong>{{ confirmedOrder.orderNumber }}</strong>
+      </p>
+    </div>
+    <div class="modal-body">
+      <div class="success-grid">
+        <div>          <div class="lbl">{{ isAmharic ? 'የክፍያ መንገድ' : 'Payment method' }}</div>
+          <div class="val">
+            {{ confirmedOrder?.paymentMethod === 'telebirr' ? 'Telebirr' :
+               confirmedOrder?.paymentMethod === 'cbe_birr' ? 'CBE Birr' :
+               (isAmharic ? 'እቃው በመደርስ ከፍ' : 'Cash on delivery') }}
+          </div>
+        </div>
+        <div>
+          <div class="lbl">{{ isAmharic ? 'ጠቅላላ ዋጋ' : 'Total paid' }}</div>
+          <div class="val">ብር {{ confirmedOrder?.totalAmount ?? 0 }}</div>
+        </div>
+      </div>
+
+      <div class="success-next">
+        <p>{{ isAmharic ? 'ሁኔታውን በቀጥታ ለመከታተል ወደ ቴሌግራም ቦታችን ይሂዱ። ማንኛውንም ጥያቄ ካሎት ሻጫቹ በቀጥታ ታውቃለች።' : 'Track your order live in our Telegram bot. The seller will contact you directly on Telegram if needed.' }}</p>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="ghost-btn" (click)="closeOrderSuccessModal()">
+        {{ isAmharic ? 'ተመልከት ይቀጥሉ' : 'Continue browsing' }}
+      </button>
+      <a type="button" class="primary-btn" [href]="getTelegramTrackUrl()" target="_blank" rel="noopener">
+         {{ isAmharic ? 'በቴሌግራም ይከታተሉ' : 'Track via Bot' }}
+      </a>
+    </div>
+  </div>
+
+  <!-- WAITLIST MODAL -->
+  <div *ngIf="isWaitlistModalOpen" class="modal-backdrop" (click)="closeWaitlistModal()"></div>
+  <div *ngIf="isWaitlistModalOpen" class="modal modal-sm">
+    <div class="modal-head">
+      <h3>{{ isAmharic ? 'በተጠባባቂ ዝርዝር ውስጥ መመዝገብ' : 'Join Product Waitlist' }}</h3>
+      <button type="button" class="close-btn" (click)="closeWaitlistModal()">✕</button>
+    </div>
+    <form (ngSubmit)="submitWaitlist()" class="modal-body">
+      <div class="waitlist-modal-banner" style="background:#f0f9ff;border:1px solid #bae6fd;padding:12px;border-radius:8px;margin-bottom:12px;">
+        <strong style="color:#0369a1;display:block;font-size:14px;">{{ waitlistForm.productName }}</strong>
+        <span *ngIf="waitlistForm.selectedColor" style="color:#0284c7;font-size:12px;">{{ isAmharic ? 'ቀለም: ' : 'Color: ' }}{{ waitlistForm.selectedColor }}</span>
+      </div>
+      <p style="font-size:13px;color:#64748b;line-height:1.4;margin:0 0 14px 0;">
+        {{ isAmharic
+          ? 'እቃው በድጋሚ ወደ ክምችት ሲገባ በቴሌግራም ወይም በስልክ ፈጣን መልዕክት ይደርስዎታል!'
+          : 'We will notify you immediately via Telegram or SMS as soon as this item is restocked!' }}
+      </p>
+
+      <label class="field">
+        <span>{{ isAmharic ? 'ሙሉ ስም (አማራጭ)' : 'Your Name (Optional)' }}</span>
+        <input type="text" [(ngModel)]="waitlistForm.name" name="waitlistName" [placeholder]="isAmharic ? 'ስምዎ' : 'Your name'">
+      </label>
+
+      <label class="field">
+        <span>{{ isAmharic ? 'ስልክ ቁጥር' : 'Phone Number' }} *</span>
+        <input type="tel" [(ngModel)]="waitlistForm.phone" name="waitlistPhone" required placeholder="09xxxxxxxx">
+      </label>
+
+      <div class="modal-foot" style="padding-top: 14px;">
+        <button type="button" class="ghost-btn" (click)="closeWaitlistModal()">{{ isAmharic ? 'ውጣ' : 'Cancel' }}</button>
+        <button type="submit" class="primary-btn" [disabled]="isSubmittingWaitlist">
+          <span *ngIf="!isSubmittingWaitlist">{{ isAmharic ? 'ተመዝገብ' : 'Join Waitlist' }}</span>
+          <span *ngIf="isSubmittingWaitlist">{{ isAmharic ? 'በመመዝገብ ላይ…' : 'Joining…' }}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- TOAST -->
+  <div *ngIf="toastMessage()" class="toast" role="status" aria-live="polite">
+    <span class="toast-icon">💬</span>
+    <span>{{ toastMessage() }}</span>
+  </div>
+</div>
+

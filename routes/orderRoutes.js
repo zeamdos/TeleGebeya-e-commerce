@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
-const User = require('../models/User');
+const User = require('../models/user');
 const bot = require('../bot');
 const {
   CANCELED,
@@ -19,6 +19,11 @@ const {
 } = require('../controllers/orderController');
 
 const { protect, optionalProtect, admin } = require('../middleware/authMiddleware');
+const { canViewOrder, canModifyOrder, filterSensitiveData, logOrderAccess } = require('../middleware/orderOwnership');
+
+// Apply logging and data filtering middleware
+router.use(logOrderAccess);
+router.use(filterSensitiveData);
 
 router.route('/')
   .post(optionalProtect, createOrder)
@@ -34,8 +39,12 @@ router.route('/')
     }
   });
 
-  
+router.route('/myorders').get(protect, getMyOrders);
+router.route('/seller/myorders').get(protect, getSellerOrders);
+router.route('/:id/status').put(protect, canModifyOrder, updateOrderStatus);
+router.route('/:id').get(canViewOrder, getOrderById);
 
+// Legacy routes for backward compatibility - these will be deprecated
 router.post('/', async (req, res) => {
   try {
     const { user, items, totalAmount, shippingAddress, phone, notes } = req.body;
@@ -63,12 +72,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.route('/myorders').get(protect, getMyOrders);
-router.route('/seller/myorders').get(protect, getSellerOrders);
-router.route('/:id/status').put(protect, updateOrderStatus);
-router.route('/:id').get(getOrderById);
-
-// Update Order Status (Accepted, Shipping, Delivered, Canceled)
+// Update Order Status (Accepted, Shipping, Delivered, Canceled) - Legacy route
 router.patch('/:id/status', async (req, res) => {
   try {
     const { orderStatus } = req.body;
@@ -147,7 +151,7 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
-// 2. Seller approves or rejects payment
+// Legacy payment verification route - will be deprecated
 router.patch('/:id/verify-payment', async (req, res) => {
   try {
     const { action } = req.body; // 'approve' or 'reject'
@@ -182,6 +186,4 @@ router.patch('/:id/verify-payment', async (req, res) => {
   }
 });
 
-router.route('/:id').get(getOrderById);
- 
 module.exports = router;

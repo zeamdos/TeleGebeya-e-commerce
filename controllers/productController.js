@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const { generateThumbnail } = require('../utils/imageThumbnail');
 
 exports.getProducts = async (req, res) => {
   try {
@@ -25,7 +26,7 @@ exports.getProducts = async (req, res) => {
     else if (sort === 'price-desc') sortOption = { price: -1 };
     else if (sort === 'rating') sortOption = { rating: -1 };
 
-    const products = await Product.find(query).sort(sortOption);
+   const products = await Product.find(query).sort(sortOption);
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -95,6 +96,9 @@ const sumVariantStock = (colors) => {
 exports.createProduct = async (req, res) => {
   try {
     const normalizedColors = normalizeVariantList(req.body.colors ?? req.body.color ?? req.body.stock);
+    const finalImageUrl = req.file ? req.file.path : (req.body.imageUrl || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80');
+    const thumbnailUrl = await generateThumbnail(finalImageUrl);
+
     const payload = {
       ...req.body,
       seller: req.user ? req.user.id : undefined,
@@ -102,7 +106,8 @@ exports.createProduct = async (req, res) => {
       sellerName: req.body.sellerName || (req.user ? (req.user.fullName || req.user.shopName) : 'TeleGebeya Seller'),
       sellerPhone: req.body.sellerPhone || (req.user ? req.user.phone : '0911223344'),
       telegramHandle: req.body.telegramHandle || (req.user?.telegramHandle ? req.user.telegramHandle : '@TeleGebeya_Shop_bot'),
-      imageUrl: req.file ? req.file.path : (req.body.imageUrl || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80'),
+      imageUrl: finalImageUrl,
+      thumbnailUrl,
       colors: normalizedColors,
       color: normalizedColors[0]?.name || req.body.color || '',
       stock: typeof req.body.stock === 'number'
@@ -119,6 +124,12 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   try {
+    const existing = await Product.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const prevStock = Number(existing.stock) || 0;
     const normalizedColors = normalizeVariantList(req.body.colors ?? req.body.color ?? req.body.stock);
     const payload = {
       ...req.body,
@@ -128,9 +139,20 @@ exports.updateProduct = async (req, res) => {
         ? Math.max(0, Number(req.body.stock))
         : sumVariantStock(normalizedColors) || 25,
     };
+    if (req.body.imageUrl && req.body.imageUrl !== existing.imageUrl) {
+      payload.thumbnailUrl = await generateThumbnail(req.body.imageUrl);
+    } else {
+      delete payload.imageUrl;      // never blank out the existing image
+      delete payload.thumbnailUrl;
+    }
 
     const product = await Product.findByIdAndUpdate(req.params.id, payload, { new: true });
     if (product) {
+      if (prevStock === 0 && product.stock > 0) {
+        const { notifyWaitlistedUsers } = require('../utils/orderCancellation');
+        const bot = require('../bot');
+        await notifyWaitlistedUsers(product, bot);
+      }
       res.json(product);
     } else {
       res.status(404).json({ message: 'Product not found' });

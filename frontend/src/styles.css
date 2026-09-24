@@ -1,0 +1,48 @@
+﻿@import "tailwindcss";
+
+body {
+  font-family: 'Outfit', 'Noto Sans Ethiopic', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+  color: #111827;
+}
+
+:root {
+  --tg-bg: #f1f3f5;
+  --tg-bg-2: #e9ecef;
+  --tg-gray: #99a2ab;
+  --tg-surface: #ffffff;
+  --tg-border: #dde3ea;
+  --tg-text: #1a1d21;
+  --tg-muted: #4b5563;
+  --tg-accent: #24a1de;
+  --tg-accent-2: #3390ec;
+  --tg-blue: #3390ec;
+  --tg-green: #4fae4e;
+  --tg-red: #e53935;
+  --tg-amber: #ffb300;
+  --tg-rad: 12px;
+  --tg-rad-sm: 8px;
+  --tg-shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+}
+
+.font-brand {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Telegram-themed subtle doodle pattern background */
+.telegram-doodle-bg {
+  background-color: #f1f3f5;
+  background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%239ca3af' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' opacity='0.35'%3E%3C!-- Paper Plane --%3E%3Cpath d='M10 15 L32 22 L20 27 Z M20 27 L20 33 L24 29' /%3E%3C!-- Chat bubble --%3E%3Cpath d='M75 14 Q85 14 85 22 Q85 30 75 30 L68 30 L64 34 L65 30 Q60 30 60 22 Q60 14 75 14 Z' /%3E%3C!-- Coffee Cup --%3E%3Cpath d='M20 75 L34 75 L32 87 L22 87 Z M34 78 Q38 78 38 81 Q38 84 33 84' /%3E%3Cpath d='M24 71 Q25 67 24 64' /%3E%3Cpath d='M28 71 Q29 67 28 64' /%3E%3C!-- Star --%3E%3Cpath d='M100 70 L102 75 L107 75 L103 78 L105 83 L100 80 L95 83 L97 78 L93 75 L98 75 Z' /%3E%3C!-- Shopping Bag --%3E%3Cpath d='M70 70 L84 70 L86 86 L68 86 Z M73 70 Q73 65 77 65 Q81 65 81 70' /%3E%3C!-- Heart --%3E%3Cpath d='M105 20 Q105 16 101 16 Q98 16 97 19 Q96 16 93 16 Q89 16 89 20 Q89 25 97 29 Q105 25 105 20 Z' /%3E%3C!-- Music note --%3E%3Cpath d='M48 48 L48 38 L56 36 L56 46 M48 48 A3 3 0 1 1 42 48 A3 3 0 1 1 48 48 M56 46 A3 3 0 1 1 50 46 A3 3 0 1 1 56 46' /%3E%3C!-- Sparkle --%3E%3Cpath d='M15 105 L15 113 M11 109 L19 109' /%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

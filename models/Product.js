@@ -8,6 +8,7 @@ const productSchema = new mongoose.Schema({
   soldCount: { type: Number, default: 0, min: 0 },
   category: { type: String, default: 'Other' },
   imageUrl: { type: String, default: '' },
+  thumbnailUrl: { type: String, default: '' },
   images: [{ type: String }],
   color: { type: String, default: '' },
   colors: [{
@@ -28,6 +29,13 @@ sellerTelebirr: { type: String, default: '' },
   reviewsCount: { type: Number, default: 0 },
   featured: { type: Boolean, default: false },
   tags: [{ type: String }],
+  waitlist: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    phone: { type: String, default: '' },
+    name: { type: String, default: '' },
+    selectedColor: { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now }
+  }],
 }, { timestamps: true });
 
 productSchema.index({ category: 1, price: 1 });

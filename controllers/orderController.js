@@ -1,6 +1,15 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const User = require('../models/User');
+const mongoose = require('mongoose');
+const User = require('../models/user');
+const { transitionOrderState, canPerformOperation } = require('../utils/orderStateMachine');
+const {
+  isCanceled,
+  restoreOrderStock,
+  restoreProductStock,
+  notifySellersOfCancel,
+  notifyWaitlistedUsers
+} = require('../utils/orderCancellation');
 
 const AMHARIC_MESSAGES = {
   ORDER_CREATED: 'ትእዛዝዎ በተሳካ ሁኔታ ተልኳል።',
@@ -21,46 +30,12 @@ const createOrderNumber = () => {
 
 const normalizeColorName = (value = '') => String(value).trim().toLowerCase();
 
-const restoreProductStock = async (productId, quantity, selectedColor, session) => {
-  if (!productId || !quantity) return;
-
-  const product = await Product.findById(productId).session(session);
-  if (!product) return;
-
-  const qty = Math.max(0, Number(quantity) || 0);
-  if (qty <= 0) return;
-
-  if (Array.isArray(product.colors) && product.colors.length > 0) {
-    const targetColor = normalizeColorName(selectedColor || product.color || '');
-    const updatedColors = product.colors.map(color => {
-      const colorDoc = color.toObject ? color.toObject() : color;
-      const name = String(colorDoc.name || '').trim();
-      if (normalizeColorName(name) !== targetColor) {
-        return colorDoc;
-      }
-      return {
-        ...colorDoc,
-        stock: Math.max(0, Number(colorDoc.stock || 0) + qty),
-      };
-    });
-
-    const totalStock = updatedColors.reduce((sum, color) => sum + Math.max(0, Number(color.stock || 0)), 0);
-    await Product.findByIdAndUpdate(
-      productId,
-      { $set: { colors: updatedColors, stock: totalStock } },
-      { session }
-    );
-    return;
-  }
-
-  await Product.findByIdAndUpdate(productId, { $inc: { stock: qty } }, { session });
-};
-
 exports.createOrder = async (req, res) => {
-  const session = await Order.startSession();
-  session.startTransaction();
+  let session;
 
   try {
+    session = await mongoose.startSession();
+    session.startTransaction();
     const {
       customerName,
       phone = req.user?.phone,
@@ -74,15 +49,46 @@ exports.createOrder = async (req, res) => {
       paymentMethod = 'cash_on_delivery',
     } = req.body;
 
+    const userId = req.user?.id || req.user?._id || req.body.userId;
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ message: AMHARIC_MESSAGES.NO_ITEMS });
     }
-    if (!phone || !subcity) {
+  if (!phone || !subcity) {
+  await session.abortTransaction();
+  session.endSession();
+  return res.status(400).json({ message: 'Phone number and subcity are required.' });
+}
+if (!streetAddress || !streetAddress.trim() || !houseNumber || !houseNumber.trim()) {
+  await session.abortTransaction();
+  session.endSession();
+  return res.status(400).json({ message: 'Please provide your full delivery address (street and house number).' });
+}
+
+    const invalidProductIds = items
+      .map(item => item?.product)
+      .filter(productId => !productId || !mongoose.isValidObjectId(productId));
+    if (invalidProductIds.length > 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: 'Phone number and subcity are required.' });
+      return res.status(400).json({
+        message: 'One or more cart products are invalid. Please refresh your cart and try again.'
+      });
+    }
+
+    if (userId && !mongoose.isValidObjectId(userId)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Your login session is invalid. Please sign in again.' });
+    }
+
+    const allowedPaymentMethods = ['telebirr', 'cash_on_delivery', 'cbe_birr'];
+    if (!allowedPaymentMethods.includes(paymentMethod)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Please select a valid payment method.' });
     }
 
     const productIds = items.map(it => it.product).filter(Boolean);
@@ -111,12 +117,17 @@ exports.createOrder = async (req, res) => {
           `"${product.name}" ${AMHARIC_MESSAGES.INSUFFICIENT_STOCK_1} ${available} ${AMHARIC_MESSAGES.INSUFFICIENT_STOCK_2}`
         );
       }
+      const price = Number(item.price ?? product.price ?? 0);
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error(`Invalid price for product ${product.name}`);
+      }
+
       return {
         product: pid,
         name: item.name || product.name,
         imageUrl: item.imageUrl || product.imageUrl,
         quantity: qty,
-        price: Number(item.price ?? product.price ?? 0),
+        price,
         selectedColor: colorName,
         seller: product.sellerId || product.seller || null,
       };
@@ -146,7 +157,12 @@ exports.createOrder = async (req, res) => {
           updateOne: {
             filter: {
               _id: item.product,
-              colors: { $elemMatch: { name: { $exists: true }, stock: { $gte: item.quantity } } },
+              colors: {
+                $elemMatch: {
+                  name: selectedColor,
+                  stock: { $gte: item.quantity }
+                }
+              },
             },
             update: {
               $set: {
@@ -193,7 +209,10 @@ exports.createOrder = async (req, res) => {
         .filter(Boolean)
         .join(', ');
 
-    const userId = req.user ? (req.user.id || req.user._id) : undefined;
+    const finalTotal = Number(totalAmount) || computedTotal;
+    const commissionRate = Number(process.env.PLATFORM_COMMISSION_RATE || 10);
+    const commissionAmount = Math.round(finalTotal * (commissionRate / 100) * 100) / 100;
+    const sellerPayoutAmount = Math.max(0, finalTotal - commissionAmount);
 
     const order = new Order({
       user: userId,
@@ -206,10 +225,16 @@ exports.createOrder = async (req, res) => {
       shippingAddress: finalShippingAddr,
       notes: notes || '',
       items: normalizedItems,
-      totalAmount: Number(totalAmount) || computedTotal,
+      totalAmount: finalTotal,
       paymentMethod,
-      paymentStatus: 'pending',
+      receiptImage: req.body.receiptImage || '',
+      paymentStatus: (paymentMethod !== 'cash_on_delivery' && req.body.receiptImage) ? 'receipt_submitted' : 'awaiting_payment',
       orderStatus: 'pending',
+      escrowStatus: 'none', // Will be set to 'held' only after payment verification
+      payoutStatus: 'pending',
+      commissionRate,
+      commissionAmount,
+      sellerPayoutAmount,
     });
 
     await order.save({ session });
@@ -314,9 +339,30 @@ if (req.user) {
       order: populated || order,
     });
   } catch (err) {
-    try { await session.abortTransaction(); } catch (_) {}
-    try { session.endSession(); } catch (_) {}
+    try { if (session?.inTransaction()) await session.abortTransaction(); } catch (_) {}
+    try { session?.endSession(); } catch (_) {}
     console.error('Order creation error:', err);
+
+    const isTransactionConflict =
+      err?.hasErrorLabel?.('TransientTransactionError') ||
+      err?.hasErrorLabel?.('UnknownTransactionCommitResult') ||
+      [112, 251].includes(err?.code);
+
+    if (isTransactionConflict) {
+      return res.status(409).json({
+        message: AMHARIC_MESSAGES.SIMULTANEOUS,
+        conflict: true,
+      });
+    }
+
+    if (err?.name === 'ValidationError' || err?.name === 'CastError') {
+      return res.status(400).json({ message: err.message });
+    }
+
+    if (err?.code === 11000) {
+      return res.status(409).json({ message: 'This order was already submitted. Please check your orders.' });
+    }
+
     return res.status(500).json({
       message: 'ይቅርታ ትእዛዙን በመፍጠር ላይ ስህተት ተከስቷል። እባክዎ እንደገና ይሞክሩ።',
       error: err.message,
@@ -333,7 +379,21 @@ exports.getMyOrders = async (req, res) => {
     const orders = await Order.find({ user: userId })
       .sort({ createdAt: -1 })
       .populate('items.product');
-    return res.status(200).json(orders);
+    
+    // Frontend compatibility mapping
+    const frontendOrders = orders.map(order => {
+      const frontendOrder = order.toObject();
+      frontendOrder.paymentStatus = frontendOrder.paymentStatus === 'verified' ? 'Paid' : 
+                              frontendOrder.paymentStatus === 'receipt_submitted' ? 'Verification Pending' : 
+                              frontendOrder.paymentStatus === 'awaiting_payment' ? 'pending' : frontendOrder.paymentStatus;
+      frontendOrder.orderStatus = frontendOrder.orderStatus === 'confirmed' ? 'Accepted' :
+                             frontendOrder.orderStatus === 'shipping' ? 'Shipped' :
+                             frontendOrder.orderStatus === 'delivered' ? 'Delivered' :
+                             frontendOrder.orderStatus === 'cancelled' ? 'Canceled' : frontendOrder.orderStatus;
+      return frontendOrder;
+    });
+    
+    return res.status(200).json(frontendOrders);
   } catch (err) {
     console.error('getMyOrders error:', err);
     return res.status(500).json({ message: err.message });
@@ -392,16 +452,43 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     const { status, orderStatus, paymentStatus } = req.body;
-    const targetStatus = orderStatus || status;
-    
-    const allowedStatuses = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
-    const allowedPay = ['pending', 'paid', 'failed'];
+    const rawTarget = orderStatus || status;
+    const actorId = req.user.id || req.user._id;
 
-    if (targetStatus && !allowedStatuses.includes(targetStatus)) {
-      return res.status(400).json({ message: 'ያልተፈቀደ የትእዛዝ ሁኔታ።' });
+    // Normalize status values
+    let targetStatus = undefined;
+    if (rawTarget !== undefined && rawTarget !== null && String(rawTarget).trim() !== '') {
+      const lower = String(rawTarget).trim().toLowerCase();
+      if (['canceled', 'cancelled'].includes(lower)) {
+        targetStatus = 'cancelled';
+      } else if (['delivered'].includes(lower)) {
+        targetStatus = 'delivered';
+      } else if (['shipping', 'shipped'].includes(lower)) {
+        targetStatus = 'shipping';
+      } else if (['confirmed', 'accepted'].includes(lower)) {
+        targetStatus = 'confirmed';
+      } else if (['pending'].includes(lower)) {
+        targetStatus = 'pending';
+      } else {
+        return res.status(400).json({ message: 'ያልተፈቀደ የትእዛዝ ሁኔታ።' });
+      }
     }
-    if (paymentStatus !== undefined && !allowedPay.includes(paymentStatus)) {
-      return res.status(400).json({ message: 'ያልተፈቀደ የክፍያ ሁኔታ።' });
+
+    // Normalize payment status to new enum values
+    let normalizedPayment = undefined;
+    if (paymentStatus !== undefined && paymentStatus !== null && String(paymentStatus).trim() !== '') {
+      const lowerPay = String(paymentStatus).trim().toLowerCase();
+      if (['paid', 'verified'].includes(lowerPay)) {
+        normalizedPayment = 'verified';
+      } else if (['pending', 'verification pending', 'awaiting_payment', 'unpaid'].includes(lowerPay)) {
+        normalizedPayment = 'awaiting_payment';
+      } else if (['failed', 'rejected'].includes(lowerPay)) {
+        normalizedPayment = 'rejected';
+      } else if (['receipt_submitted'].includes(lowerPay)) {
+        normalizedPayment = 'receipt_submitted';
+      } else {
+        normalizedPayment = paymentStatus;
+      }
     }
 
     const order = await Order.findById(req.params.id).populate('user');
@@ -415,60 +502,158 @@ exports.updateOrderStatus = async (req, res) => {
     const ownSellerItems = isSeller &&
       order.items.some(it => String(it.seller || '') === String(currentUserId));
 
-     const isBuyerOwner = String(order.user?._id || order.user || '') === String(currentUserId);
+    const isBuyerOwner = String(order.user?._id || order.user || '') === String(currentUserId) ||
+      (order.phone && req.user.phone && String(order.phone).replace(/\D/g, '').slice(-9) === String(req.user.phone).replace(/\D/g, '').slice(-9));
 
-      const buyerAllowedStatuses = ['delivered', 'cancelled'];
+    const buyerAllowedStatuses = ['delivered', 'cancelled'];
     const buyerCanSetThisStatus = isBuyerOwner && (!targetStatus || buyerAllowedStatuses.includes(targetStatus));
 
     if (!isAdmin && !ownSellerItems && !buyerCanSetThisStatus) {
       return res.status(403).json({ message: AMHARIC_MESSAGES.NOT_AUTHORIZED });
     }
-    const wasAlreadyCancelled = order.orderStatus === 'cancelled';
-    const isNewlyCancelled = targetStatus === 'cancelled' && !wasAlreadyCancelled;
 
-    
-    if (targetStatus) order.orderStatus = targetStatus;
-    if (paymentStatus) order.paymentStatus = paymentStatus;
+    // Check idempotency - if already in target state, return success
+    if (targetStatus && order.orderStatus === targetStatus && !normalizedPayment) {
+      return res.status(200).json({
+        message: AMHARIC_MESSAGES.STATUS_UPDATED,
+        order: await Order.findById(order._id).populate('items.product'),
+      });
+    }
 
-    if (targetStatus === 'cancelled') {
-      const session = await Order.startSession();
-      session.startTransaction();
-      try {
-        for (const item of order.items) {
-          await restoreProductStock(item.product, item.quantity, item.selectedColor, session);
+    // Prepare state transitions
+    const transitions = {};
+    if (targetStatus) {
+      transitions.orderStatus = targetStatus;
+    }
+    if (normalizedPayment) {
+      transitions.paymentStatus = normalizedPayment;
+    }
+
+    // Handle special business logic for delivery
+    if (targetStatus === 'delivered') {
+      // Check if operation can be performed
+      const operationCheck = canPerformOperation(order, 'confirm_delivery');
+      if (!operationCheck.canProceed) {
+        return res.status(400).json({ message: operationCheck.reason });
+      }
+
+      // Only release escrow if payment is verified or it's COD
+      if (order.paymentStatus === 'verified' || order.paymentMethod === 'cash_on_delivery') {
+        transitions.escrowStatus = 'released';
+        transitions.payoutStatus = 'ready_for_payout';
+        
+        // For COD, mark payment as verified when delivered
+        if (order.paymentMethod === 'cash_on_delivery' && order.paymentStatus === 'awaiting_payment') {
+          transitions.paymentStatus = 'verified';
         }
-        await order.save({ session });
-        await session.commitTransaction();
-        session.endSession();
-      } catch (err) {
-        await session.abortTransaction();
-        session.endSession();
-        throw err;
+      } else {
+        // Payment not verified - don't release escrow
+        transitions.escrowStatus = 'none';
       }
-    } else {
-      await order.save();
     }
 
-    // Send Telegram status update push
-    try {
+    // Handle cancellation
+    if (targetStatus === 'cancelled') {
+      const operationCheck = canPerformOperation(order, 'cancel_order');
+      if (!operationCheck.canProceed) {
+        return res.status(400).json({ message: operationCheck.reason });
+      }
+
+      transitions.escrowStatus = 'refunded';
+      transitions.payoutStatus = 'cancelled';
+    }
+
+    // Use state machine for transition
+    const transitionResult = await transitionOrderState(
+      order, 
+      transitions, 
+      actorId, 
+      { note: `Order status updated to ${targetStatus || normalizedPayment}` }
+    );
+
+    if (!transitionResult.success) {
+      return res.status(400).json({ 
+        message: 'Failed to update order status', 
+        errors: transitionResult.errors 
+      });
+    }
+
+    // Ensure commission amounts are set
+    if (!order.commissionAmount || order.commissionAmount === 0) {
+      const rate = order.commissionRate || Number(process.env.PLATFORM_COMMISSION_RATE || 10);
+      order.commissionRate = rate;
+      order.commissionAmount = Math.round(order.totalAmount * (rate / 100) * 100) / 100;
+      order.sellerPayoutAmount = Math.max(0, order.totalAmount - order.commissionAmount);
+    }
+
+    await order.save();
+
+    // Handle cancellation side effects
+    if (targetStatus === 'cancelled') {
       const bot = require('../bot');
-      const customerChatId = order.user?.telegramChatId || order.telegramChatId;
-      if (customerChatId && bot && bot.telegram) {
-        const statusMessage = 
-          `🚚 <b>ORDER UPDATE!</b>\n\n` +
-          `Your order <code>${order._id}</code> status has been updated to:\n` +
-          `STATUS: <b>${(targetStatus || order.orderStatus).toUpperCase()}</b>`;
-
-        await bot.telegram.sendMessage(customerChatId, statusMessage, { parse_mode: 'HTML' });
-      }
-    } catch (err) {
-      console.error("Telegram status notify error:", err.message);
+      await restoreOrderStock(order, bot);
+      await notifySellersOfCancel(order, bot);
     }
+
+    // Send Seller Delivery & Payout Notification (non-blocking)
+    if (targetStatus === 'delivered' && transitions.escrowStatus === 'released') {
+      setImmediate(async () => {
+        try {
+          const bot = require('../bot');
+          const sellerIds = [...new Set(order.items.map(it => it.seller || it.product?.seller).filter(Boolean))];
+          for (const sId of sellerIds) {
+            const seller = await User.findById(sId).lean();
+            if (seller && seller.telegramChatId && bot && bot.telegram) {
+              const msg =
+                `🎉 <b>ORDER DELIVERED — ESCROW RELEASED!</b>\n\n` +
+                `<b>Order:</b> <code>${order.orderNumber || order._id}</code>\n` +
+                `<b>Gross Total:</b> ${order.totalAmount} ETB\n` +
+                `<b>Platform Commission (${order.commissionRate}%):</b> -${order.commissionAmount} ETB\n` +
+                `<b>Your Net Payout:</b> <b>${order.sellerPayoutAmount} ETB</b>\n\n` +
+                `Status: <b>READY FOR TRANSFER</b> 💸\n` +
+                `The platform admin has received the delivery confirmation and will transfer your net earnings to your linked Telebirr/CBE account.`;
+              await bot.telegram.sendMessage(seller.telegramChatId, msg, { parse_mode: 'HTML' });
+            }
+          }
+        } catch (err) {
+          console.error("Seller delivery notify error:", err.message);
+        }
+      })();
+    }
+
+    // Send Telegram status update push (non-blocking)
+    setImmediate(async () => {
+      try {
+        const bot = require('../bot');
+        const customerChatId = order.user?.telegramChatId || order.telegramChatId;
+        if (customerChatId && bot && bot.telegram) {
+          const statusMessage = 
+            `🚚 <b>ORDER UPDATE!</b>\n\n` +
+            `Your order <code>${order._id}</code> status has been updated to:\n` +
+            `STATUS: <b>${(targetStatus || order.orderStatus).toUpperCase()}</b>`;
+
+          await bot.telegram.sendMessage(customerChatId, statusMessage, { parse_mode: 'HTML' });
+        }
+      } catch (err) {
+        console.error("Telegram status notify error:", err.message);
+      }
+    });
 
     const refreshed = await Order.findById(order._id).populate('items.product');
+    
+    // Frontend compatibility mapping
+    const frontendOrder = refreshed.toObject();
+    frontendOrder.paymentStatus = frontendOrder.paymentStatus === 'verified' ? 'Paid' : 
+                            frontendOrder.paymentStatus === 'receipt_submitted' ? 'Verification Pending' : 
+                            frontendOrder.paymentStatus === 'awaiting_payment' ? 'pending' : frontendOrder.paymentStatus;
+    frontendOrder.orderStatus = frontendOrder.orderStatus === 'confirmed' ? 'Accepted' :
+                           frontendOrder.orderStatus === 'shipping' ? 'Shipped' :
+                           frontendOrder.orderStatus === 'delivered' ? 'Delivered' :
+                           frontendOrder.orderStatus === 'cancelled' ? 'Canceled' : frontendOrder.orderStatus;
+    
     return res.status(200).json({
       message: AMHARIC_MESSAGES.STATUS_UPDATED,
-      order: refreshed,
+      order: frontendOrder,
     });
 
   } catch (err) {

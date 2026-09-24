@@ -1,45 +1,165 @@
 // utils/orderCancellation.js
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const User = require('../models/User');
-
-// The field in your Product model that holds the stock number.
-// If restocking does nothing, this name is the first thing to check.
-const STOCK_FIELD = 'stock';
+const User = require('../models/user');
 
 // Every spelling of "canceled" that can show up as a status
 const CANCELED = ['Canceled', 'Cancelled', 'canceled', 'cancelled'];
 const isCanceled = (status) => CANCELED.includes(status);
+
+const normalizeColorName = (value = '') => String(value).trim().toLowerCase();
 
 // Telegram HTML mode breaks on raw < > &
 const esc = (v = '') =>
   String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // Send a Telegram message without letting a failure (user blocked the bot, etc.) crash the request.
-// Returns true if it was sent, false if it failed.
-const safeSend = (bot, chatId, text) =>
-  bot.telegram
+const safeSend = (bot, chatId, text) => {
+  if (!bot || !bot.telegram || !chatId) return Promise.resolve(false);
+  return bot.telegram
     .sendMessage(chatId, text, { parse_mode: 'HTML' })
     .then(() => true)
     .catch((err) => {
       console.error(`Telegram send failed for ${chatId}:`, err.message);
       return false;
     });
+};
+
+/**
+ * Notify all waitlisted users when a product gets restocked (> 0 stock).
+ */
+async function notifyWaitlistedUsers(product, bot) {
+  try {
+    if (!product || !product.waitlist || product.waitlist.length === 0) return;
+    const tgBot = bot || require('../bot');
+    if (!tgBot || !tgBot.telegram) return;
+
+    const waitlistEntries = [...product.waitlist];
+    if (waitlistEntries.length === 0) return;
+
+    for (const entry of waitlistEntries) {
+      let chatId = null;
+      if (entry.user) {
+        const userDoc = await User.findById(entry.user).lean();
+        if (userDoc && userDoc.telegramChatId) {
+          chatId = userDoc.telegramChatId;
+        }
+      }
+      if (!chatId && entry.phone) {
+        const last9Digits = String(entry.phone).replace(/\D/g, '').slice(-9);
+        if (last9Digits) {
+          const userByPhone = await User.findOne({ phone: new RegExp(last9Digits + '$') }).lean();
+          if (userByPhone && userByPhone.telegramChatId) {
+            chatId = userByPhone.telegramChatId;
+          }
+        }
+      }
+
+      if (chatId) {
+        const restockMsg =
+          `🔔 <b>BACK IN STOCK!</b>\n\n` +
+          `Great news! <b>${esc(product.name)}</b> is back in stock (${product.stock} available).\n` +
+          `Hurry and place your order before it sells out again!`;
+
+        await safeSend(tgBot, chatId, restockMsg);
+      }
+    }
+
+    // Clear the waitlist now that they've been notified
+    product.waitlist = [];
+    await Product.findByIdAndUpdate(product._id, { $set: { waitlist: [] } });
+  } catch (err) {
+    console.error('[notifyWaitlistedUsers] error:', err.message);
+  }
+}
+
+/**
+ * Restore product stock for a single item (handling color variants & total stock accurately).
+ */
+async function restoreProductStock(productId, quantity, selectedColor, bot) {
+  if (!productId || !quantity) return null;
+  const pid = productId._id ? productId._id : productId;
+  const qty = Math.max(1, Number(quantity) || 1);
+
+  const product = await Product.findById(pid);
+  if (!product) {
+    console.warn(`[restock] Product ${pid} not found, skipping restock`);
+    return null;
+  }
+
+  const prevStock = Number(product.stock) || 0;
+  product.soldCount = Math.max(0, (Number(product.soldCount) || 0) - qty);
+
+  if (Array.isArray(product.colors) && product.colors.length > 0) {
+    const targetColor = normalizeColorName(selectedColor || product.color || '');
+    let matched = false;
+
+    const updatedColors = product.colors.map(color => {
+      const colorDoc = color.toObject ? color.toObject() : color;
+      const name = String(colorDoc.name || '').trim();
+      if (normalizeColorName(name) === targetColor || (!targetColor && product.colors.length === 1)) {
+        matched = true;
+        return {
+          ...colorDoc,
+          name,
+          stock: Math.max(0, Number(colorDoc.stock || 0) + qty),
+        };
+      }
+      return colorDoc;
+    });
+
+    if (!matched && updatedColors.length > 0) {
+      const first = updatedColors[0];
+      updatedColors[0] = {
+        ...first,
+        name: String(first.name || 'Default').trim(),
+        stock: Math.max(0, Number(first.stock || 0) + qty),
+      };
+    }
+
+    product.colors = updatedColors;
+    product.stock = updatedColors.reduce((sum, c) => sum + Math.max(0, Number(c.stock || 0)), 0);
+  } else {
+    product.stock = Math.max(0, prevStock + qty);
+  }
+
+  await product.save();
+  console.log(`[restock] Product "${product.name}" (${product._id}): stock changed from ${prevStock} -> ${product.stock}`);
+
+  if (prevStock === 0 && product.stock > 0) {
+    await notifyWaitlistedUsers(product, bot);
+  }
+
+  return product;
+}
+
+/**
+ * Restores stock for all items in an order.
+ */
+async function restoreOrderStock(order, bot) {
+  if (!order || !Array.isArray(order.items)) return;
+  for (const item of order.items) {
+    const productId = item.product?._id || item.product;
+    if (productId) {
+      try {
+        await restoreProductStock(productId, item.quantity, item.selectedColor, bot);
+      } catch (err) {
+        console.error(`[restock] Failed to restore stock for item ${item.name}:`, err.message);
+      }
+    }
+  }
+}
 
 /**
  * Cancel an order ONE time and put its items back in stock.
- *
- * Returns the updated order, or null if the order doesn't exist or was already canceled.
- * The "not already canceled" check is inside the update itself, so double-tapping
- * Cancel (two requests at once) can never restock twice.
- *
- * status: which spelling to save ('Canceled' or 'cancelled')
- * extra:  any other fields to set at the same time, e.g. { paymentStatus: 'Rejected' }
  */
-async function cancelOrder(orderId, { status = 'Canceled', extra = {} } = {}) {
+async function cancelOrder(orderId, { status = 'cancelled', extra = {}, bot } = {}) {
+  const normalizedStatus = status.toLowerCase() === 'canceled' ? 'cancelled' : status;
+
+  // Atomically find non-canceled order and update status
   const order = await Order.findOneAndUpdate(
     { _id: orderId, orderStatus: { $nin: CANCELED } },
-    { ...extra, orderStatus: status },
+    { ...extra, orderStatus: normalizedStatus },
     { new: true }
   )
     .populate('user')
@@ -50,55 +170,20 @@ async function cancelOrder(orderId, { status = 'Canceled', extra = {} } = {}) {
     return null;
   }
 
-  console.log(`[cancel] order ${order._id} saved as "${status}" with ${order.items.length} item(s)`);
+  console.log(`[cancel] order ${order._id} saved as "${normalizedStatus}" with ${order.items.length} item(s)`);
 
-  // If the stock field isn't in the Product schema, Mongoose silently ignores the update.
-  // Print the real field names so it's obvious which one to use.
-  if (!Product.schema.path(STOCK_FIELD)) {
-    console.warn(
-      `[cancel] your Product schema has no "${STOCK_FIELD}" field, so restocking will be ignored. ` +
-        `Fields in the schema: ${Object.keys(Product.schema.paths).join(', ')}. ` +
-        `Set STOCK_FIELD at the top of utils/orderCancellation.js to the right one.`
-    );
-  }
-
-  // Put the stock back ($inc is atomic, so it's safe if other orders are changing stock too)
-  for (const item of order.items) {
-    if (!item.product) {
-      console.warn(`[cancel] "${item.name}" has no linked product, so it can't be restocked`);
-      continue;
-    }
-    try {
-      const result = await Product.updateOne(
-        { _id: item.product._id },
-        { $inc: { [STOCK_FIELD]: item.quantity } }
-      );
-      console.log(
-        `[cancel] product ${item.product._id}: +${item.quantity} to "${STOCK_FIELD}" ->`,
-        JSON.stringify(result)
-      );
-      if (!(result.modifiedCount ?? result.nModified)) {
-        console.warn(
-          `[cancel] nothing changed for product ${item.product._id}. ` +
-            `Most likely "${STOCK_FIELD}" isn't the real stock field name in your Product schema.`
-        );
-      }
-    } catch (err) {
-      // The order is already canceled at this point, so log loudly instead of failing the request
-      console.error(`[cancel] RESTOCK FAILED for product ${item.product._id}:`, err.message);
-    }
-  }
+  const tgBot = bot || require('../bot');
+  await restoreOrderStock(order, tgBot);
 
   return order;
 }
 
 /**
  * Tell each seller in the order that it was canceled.
- * If an order has items from several sellers, each seller only sees their own items.
  */
 async function notifySellersOfCancel(order, bot) {
   try {
-    // Group items by seller: item.seller if saved on the order, else the product's seller
+    const tgBot = bot || require('../bot');
     const bySeller = new Map();
     for (const item of order.items) {
       const sellerId = String(item.seller || item.product?.seller || item.product?.sellerId || '');
@@ -107,20 +192,13 @@ async function notifySellersOfCancel(order, bot) {
       bySeller.get(sellerId).push(item);
     }
     if (bySeller.size === 0) {
-      console.warn(`[cancel] order ${order._id}: no seller found on its items, so nobody was notified`);
       return;
     }
 
     const sellers = await User.find({ _id: { $in: [...bySeller.keys()] } });
 
     for (const seller of sellers) {
-      if (!seller.telegramChatId) {
-        console.warn(
-          `[cancel] seller ${seller._id} has no telegramChatId, skipped. ` +
-            `They need to link their Telegram in the bot first.`
-        );
-        continue;
-      }
+      if (!seller.telegramChatId) continue;
 
       const lines = bySeller
         .get(String(seller._id))
@@ -136,12 +214,21 @@ async function notifySellersOfCancel(order, bot) {
         `<b>Customer Phone:</b> ${esc(order.phone)}\n\n` +
         `<b>Back in stock:</b>\n${lines}`;
 
-      const sent = await safeSend(bot, seller.telegramChatId, msg);
-      console.log(`[cancel] seller ${seller._id}: ${sent ? 'notified' : 'Telegram send failed'}`);
+      await safeSend(tgBot, seller.telegramChatId, msg);
     }
   } catch (err) {
     console.error('Seller cancel notification failed:', err.message);
   }
 }
 
-module.exports = { CANCELED, isCanceled, cancelOrder, notifySellersOfCancel, safeSend };
+module.exports = {
+  CANCELED,
+  isCanceled,
+  normalizeColorName,
+  cancelOrder,
+  restoreProductStock,
+  restoreOrderStock,
+  notifySellersOfCancel,
+  notifyWaitlistedUsers,
+  safeSend
+};

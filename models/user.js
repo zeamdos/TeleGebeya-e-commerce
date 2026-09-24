@@ -9,10 +9,15 @@ const userSchema = new mongoose.Schema({
   telegramHandle: { type: String, default: '', trim: true },
   shopName: { type: String, default: '', trim: true },
   banned: { type: Boolean, default: false },
- telegramChatId: { type: String, default: '' },
-  telegramHandle: { type: String, default: '' },
-
-}, { timestamps: true });
+  telegramChatId: { type: String, default: '' },
+  sellerTelebirr: { type: String, default: '', trim: true },
+  sellerCbeAccount: { type: String, default: '', trim: true },
+  sellerBankName: { type: String, default: 'Commercial Bank of Ethiopia', trim: true },
+}, { 
+  timestamps: true,
+  // Handle duplicate key errors gracefully
+  autoIndex: false 
+});
 
 userSchema.index({ role: 1 });
 userSchema.index({ banned: 1 });
