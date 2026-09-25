@@ -4,13 +4,17 @@
     <div class="header-left" (click)="goHome()">
       <div class="header-titles">
         <div class="app-title font-weight-700px">{{ title() }}</div>
-<div class = "announce-bar"> <span>{{ isAmharic ? '1,000 ብር በላይ ግዢ ላይ ነጻ መላኪያ' : 'Free delivery on orders above 1,000 birr' }}</span></div>
-  <div class="header-divider"></div>
+
         <div class="app-subtitle">
           {{ isAmharic ? 'በቴሌግራም የተገነባ የኢትዮጵያ የግዢ ገበያ' : 'Ethiopia\'s Telegram Marketplace' }}
         </div>
-      </div>
+        </div>
     </div>
+<div class="header-center">
+      <div class="announce-bar">{{ isAmharic ? '1,000 ብር በላይ ግዢ ላይ ነጻ መላኪያ' : 'Free delivery on orders above 1,000 birr' }}</div>
+      <div class="header-divider"></div>
+    </div>
+    
     
     <div class="header-right">
       <button type="button" class="icon-btn toggle-lang" (click)="toggleLanguage()"
@@ -49,6 +53,8 @@
 </button>
     </div>
   </header>
+
+
 
   <!-- HOME PAGE -->
   <main *ngIf="currentPage === 'home'" class="main">

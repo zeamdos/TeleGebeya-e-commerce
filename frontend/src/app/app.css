@@ -9,100 +9,16 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-/* Mobile-specific improvements */
-@media (max-width: 768px) {
-  .header {
-    padding: 10px 12px;
-  }
-  
-  .header-left {
-    gap: 8px;
-  }
-  
-  .search-wrap {
-    padding: 10px 12px;
-  }
-  
-  .search-input {
-    font-size: 16px; /* Prevent zoom on iOS */
-  }
-  
-  button, .delivery-pill {
-    min-height: 44px; /* iOS touch target minimum */
-    min-width: 44px;
-  }
-  
-  .hero-carousel {
-    padding: 12px;
-  }
-  
-  .product-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  
-  .product-card {
-    border-radius: 12px;
-  }
-  
-  .product-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .cart-drawer {
-    width: 100%;
-    max-width: 100%;
-  }
-  
-  /* Safe area for Telegram in-app browser */
-  body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  
-  /* Ensure inputs don't zoom on iOS */
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-  
-  /* Better touch targets */
-  .icon-btn {
-    min-width: 44px;
-    min-height: 44px;
-  }
-  
-  /* Modal improvements for mobile */
-  .modal-overlay {
-    padding: 16px;
-  }
-  
-  .modal-content {
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  
-  /* Checkout form mobile improvements */
-  .field {
-    margin-bottom: 16px;
-  }
-  
-  .field input, .field select {
-    padding: 12px;
-    font-size: 16px;
-  }
-}
-
 a { color: inherit; text-decoration: none; }
 .announce-bar {
   background: white;
-  color: black;
-  text-align: center;
-  font-size: 12.5px;
+  color: #111111;
+  text-align: left;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: .2px;
-  margin-left: 206px;
+  letter-spacing: .08px;
+  white-space: nowrap;
+  padding: 0 8px;
 }
 /* ===== HEADER ===== */
 .header {
@@ -112,7 +28,8 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  /*gap: 12px;*/
+  width: 100%;
   padding: 12px 16px;
   background: white;
   border-bottom: 1px solid #dde3ea;
@@ -125,15 +42,29 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   gap: 10px;
   cursor: pointer;
+    flex-shrink: 0;
 }
+
+.header-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 16px;
+  gap: 4px;
+}
+
 .header-divider {
-width: 650px;
-  height: 1px;
-  background-color: #090909; /* subtle gray line */
-  margin: 4px 300px;
-  margin-right:100px;
-  
+  width: min(80%, 400px);
+  height: 0.9px;
+  background: #000000;
+  margin: 0 auto;
+  border-radius: 999px;
+  opacity: 0.8;
 }
+
 .logo-icon {
   width: 40px;
   height: 40px;
@@ -155,13 +86,15 @@ width: 650px;
 .app-subtitle {
   font-size: 11.5px;
   color: var(--tg-muted);
-  margin-top: -20px;
+  margin-top: 2px;
+  white-space: nowrap;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 6px;
+    flex-shrink: 0;
 }
 .icon-btn {
   position: relative;
@@ -1472,3 +1405,14 @@ display: inline-block;
   background: #16a34a;
 }
 
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden; /* Stops horizontal screen stretching */
+  }
+
+  /* Optional: Hide the text on tiny phone screens so buttons aren't crushed */
+ .announce-bar,
+  .header-divider {
+    display: none;
+  }
+}
