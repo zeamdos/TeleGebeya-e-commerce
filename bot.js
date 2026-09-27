@@ -127,10 +127,12 @@ bot.action(/^track_(.+)$/, async (ctx) => {
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
-bot.launch()
-  .then(() => console.log('TeleGebeya Bot active!'))
-  .catch((err) => {
-    console.error('Telegram bot startup failed; API will continue running:', err.message);
-  });
+if (!(process.env.BOT_WEBHOOK_DOMAIN && process.env.NODE_ENV === 'production')) {
+  bot.launch()
+    .then(() => console.log('TeleGebeya Bot active!'))
+    .catch((err) => {
+      console.error('Telegram bot startup failed; API will continue running:', err.message);
+    });
+}
 
 module.exports = bot;
