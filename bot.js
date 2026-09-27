@@ -8,7 +8,7 @@ bot.webhookPath = '/telebirr-webhook';
 
 // Webhook setup for production
 if (process.env.BOT_WEBHOOK_DOMAIN && process.env.NODE_ENV === 'production') {
-  const webhookUrl = `${process.env.BOT_WEBHOOK_DOMAIN}/bot${bot.webhookPath}`;
+  const webhookUrl = `${process.env.BOT_WEBHOOK_DOMAIN}${bot.webhookPath}`;
   bot.telegram.setWebhook(webhookUrl)
     .then(() => console.log(`Webhook set to: ${webhookUrl}`))
     .catch(err => console.error('Webhook setup failed:', err.message));
