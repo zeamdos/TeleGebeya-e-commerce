@@ -22,7 +22,7 @@ export interface AdminStats {
 export class AdminService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private apiUrl = '/api/admin';
+  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api/admin';
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();

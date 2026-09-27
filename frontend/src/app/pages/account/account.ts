@@ -16,7 +16,7 @@ import { HttpClient } from '@angular/common/http';
 export class AccountPage implements OnInit {
  
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api';
   authService = inject(AuthService);
   orderService = inject(OrderService);
   productService = inject(ProductService);

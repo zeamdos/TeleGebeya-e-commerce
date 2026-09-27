@@ -7,7 +7,7 @@ import { Observable, tap } from 'rxjs';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = '/api/auth';
+  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api/auth';
   private platformId = inject(PLATFORM_ID);
 
   // Reactive state holding the currently logged in user (or null)

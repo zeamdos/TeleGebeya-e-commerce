@@ -152,7 +152,7 @@
     <!-- SELLER QUICK POST (only if seller/logged in) -->
     <section *ngIf="isSeller" class="seller-strip">
       <div class="seller-strip-text">
-        <span class="emoji">📢</span>
+        <span class="emoji"></span>
         <strong>{{ isAmharic ? 'በአዲስ አበባ ሻጭ ነዎት?' : 'Selling in Addis Ababa?' }}</strong>
         <span>{{ isAmharic ? 'እቃዎትን በሴኮንዶች ዝርዝር ያድርጉ፣ ተጠቃሚዎች በቴሌግራም ይያዙዎታል።' : 'List your product in seconds. Customers reach you via Telegram.' }}</span>
       </div>
@@ -183,7 +183,7 @@
       </div>
 
       <div *ngIf="!isLoadingProducts() && products().length === 0" class="empty-state">
-        <div class="empty-emoji">📦</div>
+        <div class="empty-emoji"></div>
         <h3>{{ isAmharic ? 'ምንም እቃ አልተገኘም' : 'No products found' }}</h3>
         <p>{{ isAmharic ? 'የፍለጋ ቃልዎን ይቀይሩ ወይም ሌላ ምድብ ይምረጡ' : 'Try a different search or category' }}</p>
       </div>
@@ -245,7 +245,7 @@
                   [disabled]="!hasStock(product, 1)"
                   (click)="addToCart(product, 1, $event)"
                 >
-                  🛒 {{ isAmharic ? 'አክል' : 'Add' }}
+                   {{ isAmharic ? 'አክል' : 'Add' }}
                 </button>
                 <button
                   type="button"
@@ -266,7 +266,7 @@
               >
                 {{ isWaitlisted(product)
                   ? (isAmharic ? '✓ ተመዝግበዋል' : '✓ Waitlisted')
-                  : (isAmharic ? '📋 ተጠባባቂ ዝርዝር' : '📋 Join Waitlist') }}
+                  : (isAmharic ? ' ተጠባባቂ ዝርዝር' : ' Join Waitlist') }}
               </button>
             </div>
           </div>
@@ -430,12 +430,12 @@
             type="button" class="role-tab"
             [class.role-tab-active]="selectedRole === 'buyer'"
             (click)="selectedRole = 'buyer'"
-          >🧍 {{ isAmharic ? 'ተጠቃሚ' : 'Buyer' }}</button>
+          > {{ isAmharic ? 'ተጠቃሚ' : 'Buyer' }}</button>
           <button
             type="button" class="role-tab"
             [class.role-tab-active]="selectedRole === 'seller'"
             (click)="selectedRole = 'seller'"
-          >🏪 {{ isAmharic ? 'ሻጭ' : 'Seller' }}</button>
+          > {{ isAmharic ? 'ሻጭ' : 'Seller' }}</button>
         </div>
 
         <label class="field">
@@ -552,7 +552,7 @@
               [disabled]="!hasStock(selectedProduct, detailQuantity, selectedColor)"
               (click)="addToCart(selectedProduct, detailQuantity, $event, selectedColor); closeProductDetail(); toggleCart();"
             >
-              🛒 {{ isAmharic ? 'ወደ ቅርጫት አክል' : 'Add to cart' }}
+               {{ isAmharic ? 'ወደ ቅርጫት አክል' : 'Add to cart' }}
             </button>
             <button
               type="button"
@@ -560,7 +560,7 @@
               [disabled]="!hasStock(selectedProduct, detailQuantity, selectedColor)"
               (click)="addToCart(selectedProduct, detailQuantity, $event, selectedColor); closeProductDetail(); openCheckoutModal();"
             >
-              ⚡ {{ isAmharic ? 'ቀጥታ ግዢ' : 'Buy now' }}
+             {{ isAmharic ? 'ቀጥታ ግዢ' : 'Buy now' }}
             </button>
           </ng-container>
 
@@ -578,7 +578,7 @@
             >
               {{ isWaitlisted(selectedProduct, selectedColor)
                 ? (isAmharic ? '✓ በተጠባባቂ ዝርዝር ውስጥ ተመዝግበዋል' : '✓ You are on the Waitlist')
-                : (isAmharic ? '📋 በተጠባባቂ ዝርዝር ውስጥ ይግቡ' : '📋 Join Waitlist (Get Notified)') }}
+                : (isAmharic ? ' በተጠባባቂ ዝርዝር ውስጥ ይግቡ' : ' Join Waitlist (Get Notified)') }}
             </button>
           </div>
         </div>

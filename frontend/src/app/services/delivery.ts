@@ -9,10 +9,10 @@ import { AuthService } from './auth';
 export class DeliveryService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private apiUrl = 'http://localhost:5000/api/orders'; 
+  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api/orders'; 
 
   searchProducts(query: string, category: string): Observable<any> {
-    return this.http.get(`http://localhost:5000/api/products?search=${query}&category=${category}`);
+   return this.http.get(`https://telegebeya-e-commerce.onrender.com/api/products?search=${query}&category=${category}`);
   }
 
   saveAddress(addressData: any): Observable<any> {

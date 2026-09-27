@@ -159,7 +159,7 @@ export interface Product {
 export class ProductService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private apiUrl = '/api/products';
+  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api/products';
 
   getProducts(params?: { search?: string; category?: string; sort?: string }): Observable<Product[]> {
     let queryParts: string[] = [];

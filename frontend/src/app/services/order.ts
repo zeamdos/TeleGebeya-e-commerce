@@ -36,7 +36,7 @@ export interface Order {
 export class OrderService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private apiUrl = '/api/orders';
+  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api/orders';
   private paymentUrl = '/api/payment';
 
   createOrder(orderData: any): Observable<Order> {
