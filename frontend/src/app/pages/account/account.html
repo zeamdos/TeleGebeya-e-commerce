@@ -84,7 +84,7 @@
     <div *ngFor="let order of myOrders()" class="p-4 bg-white border border-gray-200 rounded-2xl flex flex-col gap-3 text-xs">
       <div class="flex justify-between items-center">
         <div>
-          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} • {{ order.items?.length || 0 }} item(s)</p>
+          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} ({{ order.items?.length || 0 }} items)</p>
           <p class="text-gray-400 text-[11px]">{{ order.createdAt | date:'short' }}</p>
         </div>
         <div class="text-right">
@@ -101,7 +101,7 @@
     *ngIf="canConfirmDelivery(order)"
     (click)="confirmDelivery(order)"
     class="px-3 py-1.5 bg-emerald-800 text-white text-[11px] font-bold rounded-lg hover:bg-emerald-900 transition cursor-pointer">
-    ✓ Confirm Delivered
+    Confirm Delivered
   </button>
   <button
     *ngIf="canCancel(order)"
@@ -120,7 +120,7 @@
     <p class="text-xs text-gray-600 mb-4">Manage your store listings and sync updates directly from Telegram.</p>
     
     <button class="px-4 py-2 bg-emerald-950 text-white text-xs font-bold rounded-xl hover:bg-emerald-900 transition cursor-pointer">
-      + Post New Product
+      Post New Product
     </button>
   </div>
 
@@ -134,7 +134,7 @@
     <div *ngFor="let order of mySellerOrders()" class="p-4 bg-white border border-gray-200 rounded-2xl flex flex-col gap-3 text-xs mb-3">
       <div class="flex justify-between items-center">
         <div>
-          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} · {{ order.items?.length || 0 }} item(s)</p>
+          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} ({{ order.items?.length || 0 }} items)</p>
           <p class="text-gray-400 text-[11px]">{{ order.createdAt | date:'short' }}</p>
         </div>
         <div class="text-right">
@@ -150,7 +150,7 @@
           *ngIf="canMarkShipped(order)"
           (click)="markShipped(order)"
           class="px-3 py-1.5 bg-blue-800 text-white text-[11px] font-bold rounded-lg hover:bg-blue-900 transition cursor-pointer">
-          🚚 Mark as Shipped
+          Mark as Shipped
         </button>
       </div>
     </div>

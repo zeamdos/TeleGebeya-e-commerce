@@ -39,13 +39,7 @@ export class AuthService {
     this.currentUser.set(null);
   }
 
-  setMockUser(user: any) {
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('tb_token', 'mock_jwt_token_for_testing');
-      localStorage.setItem('tb_user', JSON.stringify(user));
-    }
-    this.currentUser.set(user);
-  }
+ 
 
   getToken(): string | null {
     if (isPlatformBrowser(this.platformId)) {

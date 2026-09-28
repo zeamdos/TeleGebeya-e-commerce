@@ -2,13 +2,13 @@
   <div class="admin-topbar">
     <div class="at-left">
       <button type="button" class="back-btn" (click)="goBackHome()">
-        ← {{ isAmharic ? 'መለስ' : 'Back to Shop' }}
+        {{ isAmharic ? 'መለስ' : 'Back to Shop' }}
       </button>
       <h1>{{ isAmharic ? 'አድሚን መደብር' : 'Admin Dashboard' }}</h1>
     </div>
     <div class="at-right">
       <button type="button" class="refresh-btn" (click)="refreshAll()">
-        🔄 {{ isAmharic ? 'አሁኑኑ ያድሱ' : 'Refresh' }}
+        {{ isAmharic ? 'አሁኑኑ ያድሱ' : 'Refresh' }}
       </button>
     </div>
   </div>
@@ -33,49 +33,42 @@
   <section *ngIf="tab === 'overview'" class="admin-section">
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-icon">👥</div>
         <div class="stat-body">
           <div class="stat-label">{{ isAmharic ? 'ጠቅላላ ተጠቃሚዎች' : 'Total Users' }}</div>
           <div class="stat-value">{{ stats().users }}</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">🏪</div>
         <div class="stat-body">
           <div class="stat-label">{{ isAmharic ? 'ሻጮች' : 'Sellers' }}</div>
           <div class="stat-value">{{ stats().sellers }}</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">📦</div>
         <div class="stat-body">
           <div class="stat-label">{{ isAmharic ? 'ምርቶች' : 'Products' }}</div>
           <div class="stat-value">{{ stats().products }}</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">🧾</div>
         <div class="stat-body">
           <div class="stat-label">{{ isAmharic ? 'ትእዛዞች' : 'Orders' }}</div>
           <div class="stat-value">{{ stats().orders }}</div>
         </div>
       </div>
       <div class="stat-card revenue">
-        <div class="stat-icon">💰</div>
         <div class="stat-body">
           <div class="stat-label">{{ isAmharic ? 'የገቢው ጠቅላላ' : 'Revenue (Paid)' }}</div>
           <div class="stat-value">{{ formatCurrency(stats().revenue) }}</div>
         </div>
       </div>
       <div class="stat-card warn">
-        <div class="stat-icon">⏱</div>
         <div class="stat-body">
           <div class="stat-label">{{ isAmharic ? 'የተጠበቁት ስራዎች' : 'Pending Orders' }}</div>
           <div class="stat-value">{{ stats().pendingOrders }}</div>
         </div>
       </div>
       <div class="stat-card warn">
-        <div class="stat-icon">⚠️</div>
         <div class="stat-body">
           <div class="stat-label">{{ isAmharic ? 'አነጋጋሪ ክምችት' : 'Low Stock' }}</div>
           <div class="stat-value">{{ stats().lowStock }}</div>
@@ -94,7 +87,7 @@
           <div *ngFor="let o of orders() | slice:0:6" class="qp-row">
             <div class="qp-col">
               <div class="qp-main">{{ o.orderNumber || ('#' + o._id?.slice(-6)) }}</div>
-              <div class="qp-sub">{{ o.customerName || o.phone }} · {{ o.items?.length || 0 }} items</div>
+              <div class="qp-sub">{{ o.customerName || o.phone }}, {{ o.items?.length || 0 }} items</div>
             </div>
             <span class="status-pill" [ngClass]="statusColor(o.orderStatus)">{{ o.orderStatus }}</span>
             <div class="qp-col right">
@@ -112,7 +105,7 @@
         </div>
         <div class="qp-list">
           <div *ngIf="(products() | filterLowStock).length === 0" class="qp-empty">
-            {{ isAmharic ? 'ሁሉም ክምችት ደህና ነው ✅' : 'All products are well stocked ✅' }}
+            {{ isAmharic ? 'ሁሉም ክምችት ደህና ነው' : 'All products are well stocked' }}
           </div>
           <div *ngFor="let p of (products() | filterLowStock) | slice:0:6" class="qp-row">
             <img class="qp-img" [src]="p.imageUrl" alt="">
@@ -178,8 +171,8 @@
                 </label>
               </td>
               <td class="actions">
-                <button type="button" class="tb-btn edit" (click)="openEditProduct(p)">✏️ {{ isAmharic ? 'አስተካክል' : 'Edit' }}</button>
-                <button type="button" class="tb-btn del" (click)="deleteProduct(p._id)">🗑</button>
+                <button type="button" class="tb-btn edit" (click)="openEditProduct(p)">{{ isAmharic ? 'አስተካክል' : 'Edit' }}</button>
+                <button type="button" class="tb-btn del" (click)="deleteProduct(p._id)">{{ isAmharic ? 'ሰርዝ' : 'Delete' }}</button>
               </td>
             </tr>
           </tbody>
@@ -234,7 +227,7 @@
                 <button type="button"
                   [class]="u.banned ? 'tb-btn edit' : 'tb-btn del'"
                   (click)="toggleUserBan(u._id || u.id, !u.banned)">
-                  {{ u.banned ? '✔ ' + (isAmharic ? 'አንቀፅ' : 'Unban') : '🚫 ' + (isAmharic ? 'አትዳር' : 'Ban') }}
+                  {{ u.banned ? (isAmharic ? 'አንቀፅ' : 'Unban') : (isAmharic ? 'አትዳር' : 'Ban') }}
                 </button>
               </td>
             </tr>
@@ -276,7 +269,7 @@
               </td>
               <td>
                 <div *ngFor="let it of (o.items || [])" class="order-item-name">
-                  {{ it.name }} × {{ it.quantity }}
+                  {{ it.name }} x {{ it.quantity }}
                 </div>
                 <span *ngIf="!o.items?.length" class="muted">—</span>
               </td>
@@ -284,7 +277,7 @@
               <td>
                 <span class="status-pill"
                   [ngClass]="statusColor(o.paymentStatus)">
-                  {{ o.paymentMethod }} · {{ o.paymentStatus }}
+                  {{ o.paymentMethod }}, {{ o.paymentStatus }}
                 </span>
               </td>
               <td>
@@ -356,13 +349,12 @@
     </div>
     <div class="modal-foot">
       <button type="button" class="ghost-btn" (click)="closeEditProduct()">{{ isAmharic ? 'ውጣ' : 'Cancel' }}</button>
-      <button type="button" class="primary-btn" (click)="saveProduct()">💾 {{ isAmharic ? 'አስቀምጥ' : 'Save changes' }}</button>
+      <button type="button" class="primary-btn" (click)="saveProduct()">{{ isAmharic ? 'አስቀምጥ' : 'Save changes' }}</button>
     </div>
   </div>
 
   <!-- Toast -->
   <div *ngIf="toast()" class="toast" role="status">
-    <span class="toast-icon">💬</span>
     <span>{{ toast() }}</span>
   </div>
 
@@ -387,7 +379,7 @@
 
   <div *ngIf="reviewOrder.receiptImage && reviewOrder.receiptImage.startsWith('data:application/pdf')"
     style="padding:16px; border:1px solid #dde3ea; border-radius:8px; text-align:center;">
-    <p style="margin-bottom:10px;">📄 {{ isAmharic ? 'ደረሰኙ PDF ፋይል ነው' : 'Receipt is a PDF file' }}</p>
+    <p style="margin-bottom:10px;">{{ isAmharic ? 'ደረሰኙ PDF ፋይል ነው' : 'Receipt is a PDF file' }}</p>
     <a [href]="reviewOrder.receiptImage" download="receipt.pdf" class="primary-btn" style="display:inline-block; text-decoration:none;">
       {{ isAmharic ? 'PDF ይክፈቱ / ያውርዱ' : 'Open / Download PDF' }}
     </a>
@@ -397,10 +389,10 @@
 </div>
     <div class="modal-foot" style="margin-top:16px;">
       <button type="button" class="ghost-btn" (click)="rejectPayment()">
-        ✕ {{ isAmharic ? 'አትቀበል' : 'Reject' }}
+        {{ isAmharic ? 'አትቀበል' : 'Reject' }}
       </button>
       <button type="button" class="primary-btn" (click)="approvePayment()">
-        ✓ {{ isAmharic ? 'ተቀበል' : 'Approve' }}
+        {{ isAmharic ? 'ተቀበል' : 'Approve' }}
       </button>
     </div>
   </div>
