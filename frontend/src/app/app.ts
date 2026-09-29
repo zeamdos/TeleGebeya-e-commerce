@@ -765,39 +765,6 @@ submitSellerPost() {
     });
   }
 
-  demoLogin(role: 'buyer' | 'seller' | 'admin' = 'buyer') {
-    let fakeUser: any;
-    if (role === 'admin') {
-      fakeUser = {
-        id: '65f1234567890abcdef00000',
-        fullName: 'TeleGebeya Admin',
-        phone: 'admin0000',
-        role: 'admin',
-        shopName: 'TeleGebeya HQ',
-        telegramHandle: '@telegebeya_admin'
-      };
-    } else if (role === 'seller') {
-      fakeUser = {
-        id: '65f1234567890abcdef11111',
-        fullName: 'Marta Addis Leather',
-        phone: '0922334455',
-        role: 'seller',
-        shopName: 'Marta Leather Shop',
-        telegramHandle: '@martaleather'
-      };
-    } else {
-      fakeUser = {
-        id: '65f1234567890abcdef22222',
-        fullName: 'Abebe Bikila',
-        phone: '0911223344',
-        role: 'buyer'
-      };
-    }
-
-    this.authService.setMockUser(fakeUser);
-    this.closeSigninModal();
-    this.showToast(`Signed in: ${fakeUser.fullName}`);
-  }
 
   showToast(msg: string) {
     this.toastMessage.set(msg);
@@ -806,3 +773,4 @@ submitSellerPost() {
     }, 2800);
   }
 }
+
