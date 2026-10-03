@@ -44,7 +44,7 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
 app.use(cors({
-  origin: '*', // Temporarily allow all origins for debugging
+  origin: process.env.FRONTEND_URL || 'http://localhost:4200', 
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

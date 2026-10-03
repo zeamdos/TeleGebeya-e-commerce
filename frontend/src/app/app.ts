@@ -36,6 +36,7 @@ selectedBase64Image: string = '';
   isOrderSuccessModalOpen = false;
   isProductDetailModalOpen = false;
   isQuickPostModalOpen = false;
+  isSubmittingSellerPost = false;
   isWaitlistModalOpen = false;
   isSubmittingWaitlist = false;
   waitlistedProductMap: { [key: string]: boolean } = {};
@@ -470,6 +471,9 @@ onFileSelected(event: any) {
   }
 
 submitSellerPost() {
+
+if (this.isSubmittingSellerPost) return;
+
     if (!this.sellerPost.name || !this.sellerPost.price) {
       alert(this.isAmharic ? 'እባክዎ የዕቃውን ስም እና ዋጋ ያስገቡ' : 'Please provide product name and price');
       return;
@@ -494,6 +498,8 @@ submitSellerPost() {
       sellerCbeAccount: this.sellerPost.cbeAccount || ''
     };
 
+     this.isSubmittingSellerPost = true;
+
     this.productService.createProduct(payload).subscribe({
       next: (created) => {
         this.closeQuickPostModal();
@@ -502,6 +508,7 @@ submitSellerPost() {
         this.selectedBase64Image = '';
       },
       error: (err) => {
+         this.isSubmittingSellerPost = false;
         console.error('Failed to post product', err);
         const msg = err.error?.message || 'Failed to post product. Please try again.';
         this.showToast(msg);

@@ -410,7 +410,9 @@
           <input type="password" [(ngModel)]="signinData.password" name="password" required>
         </label>
         <div *ngIf="authErrorMessage" class="auth-error">{{ authErrorMessage }}</div>
-        <button type="submit" class="primary-btn big-btn w-full">{{ isAmharic ? 'ግባ' : 'Sign in' }}</button>
+        <button type="submit" class="primary-btn" [disabled]="isSubmittingSellerPost">
+  {{ isSubmittingSellerPost ? (isAmharic ? 'በመለጠፍ ላይ…' : 'Posting…') : (isAmharic ? 'እቃውን ልክ' : 'Post product') }}
+</button>
 
        
       </form>

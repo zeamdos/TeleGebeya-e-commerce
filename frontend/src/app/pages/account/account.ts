@@ -35,6 +35,7 @@ isLoadingSellerOrders = signal<boolean>(false);
 
   // New Product Form State
   isAddProductModalOpen = false;
+  isSubmittingProduct = false;
   newProduct = {
     name: '',
     description: '',
@@ -188,6 +189,8 @@ canMarkShipped(order: Order): boolean {
   }
 
   submitProduct() {
+      if (this.isSubmittingProduct) return;
+
     if (!this.newProduct.name || !this.newProduct.price) {
       alert('Please provide product name and price');
       return;
@@ -196,14 +199,17 @@ canMarkShipped(order: Order): boolean {
     if (!this.newProduct.imageUrl) {
       this.newProduct.imageUrl = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80';
     }
+      this.isSubmittingProduct = true;
 
     this.productService.createProduct(this.newProduct).subscribe({
       next: (created) => {
+          this.isSubmittingProduct = false;
         this.closeAddProductModal();
         this.myProducts.update(list => [created, ...list]);
         alert(this.i18n.isAmharic() ? 'ዕቃው በተሳካ ሁኔታ ተለጥፏል!' : 'Product listed successfully!');
       },
       error: (err) => {
+         this.isSubmittingProduct = false;
         console.error('Failed to create product', err);
         alert('Failed to publish product: ' + (err.error?.message || err.message));
       }
