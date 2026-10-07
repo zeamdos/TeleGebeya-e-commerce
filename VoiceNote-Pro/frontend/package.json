@@ -1,0 +1,45 @@
+{
+  "name": "voicenote-pro-frontend",
+  "version": "1.0.0",
+  "description": "VoiceNote Pro - Real-time voice-to-text note-taking app",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^19.0.0",
+    "@angular/common": "^19.0.0",
+    "@angular/core": "^19.0.0",
+    "@angular/forms": "^19.0.0",
+    "@angular/material": "^19.0.0",
+    "@angular/platform-browser": "^19.0.0",
+    "@angular/platform-browser-dynamic": "^19.0.0",
+    "@angular/router": "^19.0.0",
+    "@ngrx/signals": "^19.0.0",
+    "@ngx-translate/core": "^15.0.0",
+    "@ngx-translate/http-loader": "^8.0.0",
+    "fabric": "^6.0.0",
+    "ngx-editor": "^18.0.0",
+    "ngx-extended-pdf-viewer": "^22.0.0",
+    "pdfmake": "^0.2.14",
+    "rxjs": "^7.8.0",
+    "socket.io-client": "^4.7.0",
+    "tslib": "^2.6.0",
+    "zone.js": "^0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^19.0.0",
+    "@angular/cli": "^19.0.0",
+    "@angular/compiler-cli": "^19.0.0",
+    "@types/fabric": "^6.0.0",
+    "@types/pdfmake": "^0.2.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.5.0"
+  }
+}

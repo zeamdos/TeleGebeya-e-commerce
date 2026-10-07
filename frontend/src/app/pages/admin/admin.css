@@ -232,11 +232,11 @@
   font-weight: 700;
   letter-spacing: .2px;
 }
-.status-pending { background: #fff3e0; color: #e65100; }
-.status-confirmed { background: #e3f2fd; color: #0d47a1; }
-.status-shipping { background: #ede7f6; color: #4527a0; }
-.status-delivered { background: #e8f5e9; color: #2e7d32; }
-.status-cancelled { background: #ffebee; color: #c62828; }
+.status-pending { background: #f3f4f6; color: #4b5563; }
+.status-confirmed { background: #e5e7eb; color: #374151; }
+.status-shipping { background: #f3f4f6; color: #4b5563; }
+.status-delivered { background: #e5e7eb; color: #374151; }
+.status-cancelled { background: #f3f4f6; color: #6b7280; }
 
 /* Switch */
 .switch {
@@ -302,10 +302,10 @@
   cursor: pointer;
   margin-right: 6px;
 }
-.tb-btn.edit { background: #e3f2fd; color: #0d47a1; }
-.tb-btn.edit:hover { background: #bbdefb; }
-.tb-btn.del { background: #ffebee; color: #c62828; }
-.tb-btn.del:hover { background: #ffcdd2; }
+.tb-btn.edit { background: #e5e7eb; color: #374151; }
+.tb-btn.edit:hover { background: #d1d5db; }
+.tb-btn.del { background: #f3f4f6; color: #4b5563; }
+.tb-btn.del:hover { background: #d1d5db; }
 
 .stock-badge {
   padding: 4px 10px;
@@ -317,8 +317,8 @@
   backdrop-filter: blur(4px);
   white-space: nowrap;
 }
-.stock-low { background: #e65100; }
-.stock-out { background: #e53935; }
+.stock-low { background: #6b7280; }
+.stock-out { background: #4b5563; }
 
 /* Edit product modal */
 .modal-backdrop {
@@ -451,16 +451,16 @@
 .ghost-btn:hover { background: #f1f3f5; }
 .primary-btn {
   padding: 11px 18px;
-  background: #3390ec;
+  background: linear-gradient(135deg, #6b7280, #4b5563);
   color: white;
   border: 0;
   border-radius: 12px;
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
-  box-shadow: 0 3px 12px rgba(51,144,236,.22);
+  box-shadow: 0 3px 12px rgba(75,85,99,.2);
 }
-.primary-btn:hover { background: #2a7bc9; }
+.primary-btn:hover { background: linear-gradient(135deg, #4b5563, #374151); }
 
 .order-item-name {
   font-size: 12px;

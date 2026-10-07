@@ -902,16 +902,19 @@ display: inline-block;
   gap: 6px;
   border: 0;
   padding: 11px 18px;
-  background: linear-gradient(135deg, #12b886, #40c057);
+  background: linear-gradient(135deg, #6b7280, #4b5563);
   color: white;
   border-radius: 12px;
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
-  box-shadow: 0 3px 12px rgba(16,185,129,.25);
+  box-shadow: 0 3px 12px rgba(75,85,99,.2);
   transition: all .15s;
 }
-.accent-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.accent-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4b5563, #374151);
+  transform: translateY(-1px);
+}
 .accent-btn:disabled { opacity: .55; cursor: not-allowed; }
 .ghost-btn {
   display: inline-flex;
@@ -1055,12 +1058,12 @@ display: inline-block;
 .auth-form { display: flex; flex-direction: column; gap: 12px; }
 .auth-error {
   padding: 10px 12px;
-  background: #ffebee;
-  color: #b71c1c;
+  background: #f3f4f6;
+  color: #4b5563;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
-  border: 1px solid #ffcdd2;
+  border: 1px solid #d1d5db;
 }
 .demo-toggles {
   display: flex;
@@ -1102,9 +1105,9 @@ display: inline-block;
   font-size: 12px;
   font-weight: 700;
 }
-.stock-pill { background: #e8f5e9; color: #2e7d32; }
-.stock-pill-low { background: #fff3e0; color: #e65100; }
-.stock-pill-out { background: #ffebee; color: #c62828; }
+.stock-pill { background: #f3f4f6; color: #4b5563; }
+.stock-pill-low { background: #f3f4f6; color: #6b7280; }
+.stock-pill-out { background: #f3f4f6; color: #6b7280; }
 .category-pill { background: var(--tg-bg-2); color: var(--tg-text); }
 
 .detail-desc {
