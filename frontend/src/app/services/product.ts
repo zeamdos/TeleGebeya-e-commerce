@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, catchError, of } from 'rxjs';
 import { AuthService } from './auth';
+import { CURRENT_API_URLS } from '../constants/api.constants';
 
 export const FALLBACK_PRODUCTS: Product[] = [
   {
@@ -159,7 +160,7 @@ export interface Product {
 export class ProductService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api/products';
+  private apiUrl = CURRENT_API_URLS.PRODUCTS;
 
   getProducts(params?: { search?: string; category?: string; sort?: string }): Observable<Product[]> {
     let queryParts: string[] = [];

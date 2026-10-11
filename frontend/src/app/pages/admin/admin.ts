@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth';
 import { TranslationService } from '../../services/translation';
 import { OrderService } from '../../services/order';
 import { FilterLowStockPipe } from './filter-low-stock.pipe';
+import { StatusMapper } from '../../utils/status-mapper';
 
 @Component({
   selector: 'app-admin',
@@ -84,7 +85,7 @@ isReviewOrderOpen = false;
             products: this.products().length,
             orders: this.orders().length,
             revenue: this.orders()
-              .filter(o => o.paymentStatus === 'paid' || o.orderStatus === 'delivered')
+              .filter(o => StatusMapper.mapPaymentStatus(o.paymentStatus) === 'Paid' || o.orderStatus === 'delivered')
               .reduce((s, o) => s + (o.totalAmount || 0), 0),
             lowStock: this.products().filter(p => (p.stock ?? 0) <= 5).length,
             pendingOrders: this.orders().filter(o => o.orderStatus === 'pending').length
@@ -116,7 +117,15 @@ isReviewOrderOpen = false;
   private loadOrders(): Promise<void> {
     return new Promise((resolve) => {
       this.adminService.getAllOrders().subscribe({
-        next: (list) => { this.orders.set(list); resolve(); },
+        next: (list) => {
+          const mappedOrders = list.map(order => ({
+            ...order,
+            paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus),
+            orderStatus: StatusMapper.mapOrderStatus(order.orderStatus)
+          }));
+          this.orders.set(mappedOrders);
+          resolve();
+        },
         error: () => { this.orders.set([]); resolve(); }
       });
     });
@@ -172,9 +181,9 @@ closeReviewOrder(): void {
 
 approvePayment(): void {
   if (!this.reviewOrder?._id) return;
-  this.orderService.updateOrderStatus(this.reviewOrder._id, { paymentStatus: 'verified' }).subscribe({
+  this.orderService.verifyPayment(this.reviewOrder._id, 'verified').subscribe({
     next: () => {
-      this.showToast(this.isAmharic ? 'ክፍያው ጸድቋል' : 'Payment verified');
+      this.showToast(this.isAmharic ? 'ክፍያው ጸውቋል' : 'Payment verified');
       this.closeReviewOrder();
       this.loadOrders();
       this.loadStats();
@@ -187,7 +196,7 @@ approvePayment(): void {
 
 rejectPayment(): void {
   if (!this.reviewOrder?._id) return;
-  this.orderService.updateOrderStatus(this.reviewOrder._id, { paymentStatus: 'rejected' }).subscribe({
+  this.orderService.verifyPayment(this.reviewOrder._id, 'rejected').subscribe({
     next: () => {
       this.showToast(this.isAmharic ? 'ክፍያው ተቀባይነት አላገኘም' : 'Payment rejected');
       this.closeReviewOrder();
@@ -254,9 +263,15 @@ rejectPayment(): void {
   // ===== Order actions =====
   updateOrderStatus(orderId: string, updates: any): void {
     this.orderService.updateOrderStatus(orderId, updates).subscribe({
-      next: () => {
+      next: (res: any) => {
+        const updatedOrder = res.order || res;
+        this.orders.update(orders => orders.map(o => o._id === orderId ? {
+          ...o,
+          ...updatedOrder,
+          paymentStatus: StatusMapper.mapPaymentStatus(updatedOrder.paymentStatus),
+          orderStatus: StatusMapper.mapOrderStatus(updatedOrder.orderStatus)
+        } : o));
         this.showToast(this.isAmharic ? 'የትእዛዝ ሁኔታ ተሻሽሏል' : 'Order status updated');
-        this.loadOrders();
         this.loadStats();
       },
       error: () => this.showToast(this.isAmharic ? 'ይቅርታ አልተሳካም' : 'Failed')
@@ -269,14 +284,25 @@ rejectPayment(): void {
   }
 
   statusColor(status: string): string {
-    switch (status) {
+    const normalized = StatusMapper.normalizeOrderStatus(status);
+    switch (normalized) {
       case 'pending': return 'status-pending';
       case 'confirmed': return 'status-confirmed';
       case 'shipping': return 'status-shipping';
       case 'delivered': return 'status-delivered';
-      case 'paid': return 'status-delivered';
       case 'cancelled': return 'status-cancelled';
-      default: return '';
+      default: return 'status-pending';
+    }
+  }
+
+  paymentStatusColor(status: string): string {
+    const normalized = StatusMapper.normalizePaymentStatus(status);
+    switch (normalized) {
+      case 'verified': return 'status-delivered';
+      case 'receipt_submitted': return 'status-shipping';
+      case 'rejected': return 'status-cancelled';
+      case 'awaiting_payment': return 'status-pending';
+      default: return 'status-pending';
     }
   }
 }

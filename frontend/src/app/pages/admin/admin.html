@@ -276,7 +276,7 @@
               <td class="num">{{ formatCurrency(o.totalAmount) }}</td>
               <td>
                 <span class="status-pill"
-                  [ngClass]="statusColor(o.paymentStatus)">
+                  [ngClass]="paymentStatusColor(o.paymentStatus)">
                   {{ o.paymentMethod }}, {{ o.paymentStatus }}
                 </span>
               </td>

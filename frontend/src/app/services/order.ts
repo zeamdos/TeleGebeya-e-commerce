@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth';
+import { CURRENT_API_URLS } from '../constants/api.constants';
+import { StatusMapper } from '../utils/status-mapper';
 
 export interface OrderItem {
   product: string;
@@ -24,10 +26,12 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   paymentMethod: 'telebirr' | 'cash_on_delivery' | 'cbe_birr';
-  paymentStatus: 'pending' | 'paid' | 'failed';
+  paymentStatus: 'awaiting_payment' | 'receipt_submitted' | 'verified' | 'rejected' | 'pending' | 'paid' | 'failed';
   orderStatus: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled';
   telebirrTransactionId?: string;
   createdAt?: string;
+  receiptImage?: string;
+  transactionId?: string;
 }
 
 @Injectable({
@@ -36,8 +40,8 @@ export interface Order {
 export class OrderService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api/orders';
-  private paymentUrl = '/api/payment';
+  private apiUrl = CURRENT_API_URLS.ORDERS;
+  private paymentUrl = CURRENT_API_URLS.PAYMENT;
 
   createOrder(orderData: any): Observable<Order> {
     const token = this.authService.getToken();
@@ -83,5 +87,14 @@ export class OrderService {
       headers = headers.set('Authorization', `Bearer ${token}`);
     }
     return this.http.post(`${this.paymentUrl}/checkout`, { orderId, amount }, { headers });
+  }
+
+  verifyPayment(orderId: string, status: 'verified' | 'rejected', notes?: string): Observable<any> {
+    const token = this.authService.getToken();
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    return this.http.post(`${this.paymentUrl}/verify-payment`, { orderId, status, notes }, { headers });
   }
 }

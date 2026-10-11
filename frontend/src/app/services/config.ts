@@ -2,6 +2,7 @@ import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { CURRENT_API_URLS } from '../constants/api.constants';
 
 export interface AppConfig {
   telegramBotUsername: string;
@@ -54,7 +55,7 @@ export class ConfigService {
 
   async loadConfig(): Promise<AppConfig> {
     try {
-      const config = await firstValueFrom(this.http.get<AppConfig>('/api/config'));
+      const config = await firstValueFrom(this.http.get<AppConfig>(CURRENT_API_URLS.CONFIG));
       this.configSignal.set(config);
       this.cacheConfig(config);
       return config;

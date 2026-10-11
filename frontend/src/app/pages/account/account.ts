@@ -6,17 +6,20 @@ import { OrderService, Order } from '../../services/order';
 import { ProductService, Product } from '../../services/product';
 import { TranslationService } from '../../services/translation';
 import { HttpClient } from '@angular/common/http';
+import { CURRENT_API_URLS } from '../../constants/api.constants';
+import { StatusMapper } from '../../utils/status-mapper';
+import { UpperCasePipe } from '@angular/common';
 
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, UpperCasePipe],
   templateUrl: './account.html'
 })
 export class AccountPage implements OnInit {
  
   private http = inject(HttpClient);
-  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api';
+  private apiUrl = CURRENT_API_URLS.API_BASE;
   authService = inject(AuthService);
   orderService = inject(OrderService);
   productService = inject(ProductService);
@@ -77,7 +80,12 @@ isLoadingSellerOrders = signal<boolean>(false);
     this.isLoadingOrders.set(true);
     this.orderService.getMyOrders().subscribe({
       next: (orders) => {
-        this.myOrders.set(orders);
+        const mappedOrders = orders.map(order => ({
+          ...order,
+          paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus),
+          orderStatus: StatusMapper.mapOrderStatus(order.orderStatus)
+        }));
+        this.myOrders.set(mappedOrders);
         this.isLoadingOrders.set(false);
       },
       error: (err) => {
@@ -109,7 +117,12 @@ loadSellerOrders() {
   this.isLoadingSellerOrders.set(true);
   this.orderService.getSellerOrders().subscribe({
     next: (orders) => {
-      this.mySellerOrders.set(orders);
+      const mappedOrders = orders.map(order => ({
+        ...order,
+        paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus),
+        orderStatus: StatusMapper.mapOrderStatus(order.orderStatus)
+      }));
+      this.mySellerOrders.set(mappedOrders);
       this.isLoadingSellerOrders.set(false);
     },
     error: (err) => {
@@ -120,15 +133,26 @@ loadSellerOrders() {
 }
 
 canMarkShipped(order: Order): boolean {
-    const status = String(order.orderStatus || '').toLowerCase();
-  return order.orderStatus === 'pending' || order.orderStatus === 'confirmed';
+    const normalized = StatusMapper.normalizeOrderStatus(order.orderStatus || '');
+  return normalized === 'pending' || normalized === 'confirmed';
 }
 
   loadMyOrders(): void {
-    this.http.get<any[]>(`${this.apiUrl}/orders/my-orders`).subscribe({
-      next: (orders) => this.myOrders.set(orders),
-      error: (err) => {console.error('Failed to load orders:', err),
-      this.isLoadingOrders.set(false);}
+    this.isLoadingOrders.set(true);
+    this.orderService.getMyOrders().subscribe({
+      next: (orders) => {
+        const mappedOrders = orders.map(order => ({
+          ...order,
+          paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus),
+          orderStatus: StatusMapper.mapOrderStatus(order.orderStatus)
+        }));
+        this.myOrders.set(mappedOrders);
+        this.isLoadingOrders.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load orders:', err);
+        this.isLoadingOrders.set(false);
+      }
     });
   }
 
@@ -256,13 +280,21 @@ canMarkShipped(order: Order): boolean {
   }
 
 canConfirmDelivery(order: Order): boolean {
-   const status = String(order.orderStatus || '').toLowerCase();
- return order.orderStatus === 'shipping' || status === 'shipped' || status === 'confirmed';
+   const normalized = StatusMapper.normalizeOrderStatus(order.orderStatus || '');
+ return normalized === 'shipping' || normalized === 'confirmed';
 }
 
 canCancel(order: Order): boolean {
-   const status = String(order.orderStatus || '').toLowerCase();
-  return order.orderStatus === 'pending' || order.orderStatus === 'confirmed';
+   const normalized = StatusMapper.normalizeOrderStatus(order.orderStatus || '');
+  return normalized === 'pending' || normalized === 'confirmed';
+}
+
+formatOrderStatus(status: string): string {
+  return StatusMapper.mapOrderStatus(status);
+}
+
+formatPaymentStatus(status: string): string {
+  return StatusMapper.mapPaymentStatus(status);
 }
 
   deleteProduct(id: string) {

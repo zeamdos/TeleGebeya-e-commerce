@@ -90,7 +90,7 @@
         <div class="text-right">
           <p class="font-bold text-emerald-900">{{ order.totalAmount }} ETB</p>
           <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-            {{ order.orderStatus }}
+            {{ formatOrderStatus(order.orderStatus) }}
           </span>
         </div>
       </div>
@@ -140,7 +140,7 @@
         <div class="text-right">
           <p class="font-bold text-emerald-900">{{ order.totalAmount }} ETB</p>
           <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-            {{ order.orderStatus }}
+            {{ formatOrderStatus(order.orderStatus) }}
           </span>
         </div>
       </div>

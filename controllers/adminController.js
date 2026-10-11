@@ -82,21 +82,8 @@ exports.getAllOrdersAdmin = async (req, res) => {
       .populate('user', 'fullName phone role')
       .populate('items.product')
       .populate('items.seller', 'fullName phone sellerTelebirr sellerCbeAccount shopName');
-    
-    // Frontend compatibility mapping
-    const frontendOrders = orders.map(order => {
-      const frontendOrder = order.toObject();
-      frontendOrder.paymentStatus = frontendOrder.paymentStatus === 'verified' ? 'Paid' : 
-                              frontendOrder.paymentStatus === 'receipt_submitted' ? 'Verification Pending' : 
-                              frontendOrder.paymentStatus === 'awaiting_payment' ? 'pending' : frontendOrder.paymentStatus;
-      frontendOrder.orderStatus = frontendOrder.orderStatus === 'confirmed' ? 'Accepted' :
-                             frontendOrder.orderStatus === 'shipping' ? 'Shipped' :
-                             frontendOrder.orderStatus === 'delivered' ? 'Delivered' :
-                             frontendOrder.orderStatus === 'cancelled' ? 'Canceled' : frontendOrder.orderStatus;
-      return frontendOrder;
-    });
-    
-    res.json(frontendOrders);
+
+    res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

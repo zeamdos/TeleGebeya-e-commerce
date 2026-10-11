@@ -232,9 +232,9 @@
   font-weight: 700;
   letter-spacing: .2px;
 }
-.status-pending { background: #111111; color: #ffffff; }
-.status-confirmed { background: #111111; color: #ffffff; }
-.status-shipping { background: #111111; color: #ffffff; }
+.status-pending { background: #f1f3f5; color: #111111; }
+.status-confirmed { background: #f1f3f5; color: #111111; }
+.status-shipping { background: #f1f3f5; color: #111111; }
 .status-delivered { background: #111111; color: #ffffff; }
 .status-cancelled { background: #111111; color: #ffffff; }
 
@@ -280,14 +280,14 @@
 .mini-sel {
   padding: 6px 10px;
   border: 1px solid #dde3ea;
-  background: #f8fafc;
+  background: #f1f3f5;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
   outline: none;
-  color: #1a1d21;
+  color: #111111;
 }
-.mini-sel:focus { border-color: #3390ec; background: white; }
+.mini-sel:focus { border-color: #3390ec; background: #ffffff; }
 
 .actions { width: 220px; white-space: nowrap; }
 .tb-btn {
@@ -408,11 +408,11 @@
 .field select,
 .field textarea {
   border: 1px solid #dde3ea;
-  background: #f8fafc;
+  background: #f1f3f5;
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
-  color: #1a1d21;
+  color: #111111;
   outline: none;
   font-family: inherit;
   transition: all .15s;
@@ -420,7 +420,7 @@
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  background: white;
+  background: #ffffff;
   border-color: #3390ec;
   box-shadow: 0 0 0 3px rgba(51,144,236,.12);
 }
@@ -440,19 +440,19 @@
 }
 .ghost-btn {
   padding: 10px 16px;
-  background: #111111;
-  border: 1px solid #3a3a3a;
+  background: #f1f3f5;
+  border: 1px solid #dde3ea;
   border-radius: 12px;
   font-weight: 700;
   font-size: 13.5px;
   cursor: pointer;
-  color: #ffffff;
+  color: #111111;
 }
-.ghost-btn:hover { background: #2a2a2a; }
+.ghost-btn:hover { background: #dde6ef; }
 .primary-btn {
   padding: 11px 18px;
   background: #111111;
-  color: white;
+  color: #ffffff;
   border: 0;
   border-radius: 12px;
   font-weight: 700;

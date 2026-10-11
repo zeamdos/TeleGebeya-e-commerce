@@ -379,21 +379,8 @@ exports.getMyOrders = async (req, res) => {
     const orders = await Order.find({ user: userId })
       .sort({ createdAt: -1 })
       .populate('items.product');
-    
-    // Frontend compatibility mapping
-    const frontendOrders = orders.map(order => {
-      const frontendOrder = order.toObject();
-      frontendOrder.paymentStatus = frontendOrder.paymentStatus === 'verified' ? 'Paid' : 
-                              frontendOrder.paymentStatus === 'receipt_submitted' ? 'Verification Pending' : 
-                              frontendOrder.paymentStatus === 'awaiting_payment' ? 'pending' : frontendOrder.paymentStatus;
-      frontendOrder.orderStatus = frontendOrder.orderStatus === 'confirmed' ? 'Accepted' :
-                             frontendOrder.orderStatus === 'shipping' ? 'Shipped' :
-                             frontendOrder.orderStatus === 'delivered' ? 'Delivered' :
-                             frontendOrder.orderStatus === 'cancelled' ? 'Canceled' : frontendOrder.orderStatus;
-      return frontendOrder;
-    });
-    
-    return res.status(200).json(frontendOrders);
+
+    return res.status(200).json(orders);
   } catch (err) {
     console.error('getMyOrders error:', err);
     return res.status(500).json({ message: err.message });
@@ -484,9 +471,10 @@ exports.updateOrderStatus = async (req, res) => {
         normalizedPayment = 'awaiting_payment';
       } else if (['failed', 'rejected'].includes(lowerPay)) {
         normalizedPayment = 'rejected';
-      } else if (['receipt_submitted'].includes(lowerPay)) {
+      } else if (['receipt_submitted', 'verification pending'].includes(lowerPay)) {
         normalizedPayment = 'receipt_submitted';
       } else {
+        // Pass through unrecognized statuses unchanged
         normalizedPayment = paymentStatus;
       }
     }
@@ -640,20 +628,10 @@ exports.updateOrderStatus = async (req, res) => {
     });
 
     const refreshed = await Order.findById(order._id).populate('items.product');
-    
-    // Frontend compatibility mapping
-    const frontendOrder = refreshed.toObject();
-    frontendOrder.paymentStatus = frontendOrder.paymentStatus === 'verified' ? 'Paid' : 
-                            frontendOrder.paymentStatus === 'receipt_submitted' ? 'Verification Pending' : 
-                            frontendOrder.paymentStatus === 'awaiting_payment' ? 'pending' : frontendOrder.paymentStatus;
-    frontendOrder.orderStatus = frontendOrder.orderStatus === 'confirmed' ? 'Accepted' :
-                           frontendOrder.orderStatus === 'shipping' ? 'Shipped' :
-                           frontendOrder.orderStatus === 'delivered' ? 'Delivered' :
-                           frontendOrder.orderStatus === 'cancelled' ? 'Canceled' : frontendOrder.orderStatus;
-    
+
     return res.status(200).json({
       message: AMHARIC_MESSAGES.STATUS_UPDATED,
-      order: frontendOrder,
+      order: refreshed,
     });
 
   } catch (err) {

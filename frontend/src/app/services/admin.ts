@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth';
+import { CURRENT_API_URLS } from '../constants/api.constants';
 
 export interface AdminStats {
   users?: number;
@@ -22,7 +23,7 @@ export interface AdminStats {
 export class AdminService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private apiUrl = 'https://telegebeya-e-commerce.onrender.com/api/admin';
+  private apiUrl = CURRENT_API_URLS.ADMIN;
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
