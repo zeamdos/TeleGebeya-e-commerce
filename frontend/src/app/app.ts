@@ -58,31 +58,98 @@ selectedBase64Image: string = '';
 constructor(private http: HttpClient) {}
 
 
-onFileSelected(event: any) {
-    const file = event.target.files[0];
+  compressImage(file: File, maxDimension = 1000, quality = 0.75): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target.result);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  get isReceiptPdf(): boolean {
+    return !!this.receiptBase64 && this.receiptBase64.startsWith('data:application/pdf');
+  }
+
+  async onFileSelected(event: any) {
+    const file = event.target.files?.[0];
     if (file) {
       this.selectedFile = file;
-
-      // Local preview before upload
-      const reader = new FileReader();
-      reader.onload = () => (
-        this.selectedBase64Image = reader.result as string,
-        this.imagePreview = reader.result as string);
-      reader.readAsDataURL(file);
+      if (file.type.startsWith('image/')) {
+        try {
+          const compressed = await this.compressImage(file, 900, 0.75);
+          this.selectedBase64Image = compressed;
+          this.imagePreview = compressed;
+        } catch (e) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            this.selectedBase64Image = reader.result as string;
+            this.imagePreview = reader.result as string;
+          };
+          reader.readAsDataURL(file);
+        }
+      }
     }
   }
 
-  onReceiptSelected(event: any) {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files[0]) {
-    const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.receiptBase64 = reader.result as string;
-    };
-    reader.readAsDataURL(file);
+  async onReceiptSelected(event: any) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        alert(this.isAmharic ? 'የደረሰኝ ፋይል መጠን ከ5MB በታች መሆን አለበት' : 'Receipt file size must be under 5MB');
+        input.value = '';
+        return;
+      }
+
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          this.receiptBase64 = reader.result as string;
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type.startsWith('image/')) {
+        try {
+          this.receiptBase64 = await this.compressImage(file, 1000, 0.75);
+        } catch {
+          const reader = new FileReader();
+          reader.onload = () => {
+            this.receiptBase64 = reader.result as string;
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
   }
-}
   
   placeOrder() {
     const orderPayload = {

@@ -406,13 +406,11 @@
             [placeholder]="isAmharic ? '09xxxxxxxx' : '09xxxxxxxx'">
         </label>
         <label class="field">
-          <span>{{ isAmharic ? 'አለማ ስኬት' : 'Password' }}</span>
+          <span>{{ isAmharic ? 'ሚስጥር ቁጥር' : 'Password' }}</span>
           <input type="password" [(ngModel)]="signinData.password" name="password" required>
         </label>
         <div *ngIf="authErrorMessage" class="auth-error">{{ authErrorMessage }}</div>
-        <button type="submit" class="primary-btn" [disabled]="isSubmittingSellerPost">
-  {{ isSubmittingSellerPost ? (isAmharic ? 'በመለጠፍ ላይ…' : 'Posting…') : (isAmharic ? 'እቃውን ልክ' : 'Post product') }}
-</button>
+        <button type="submit" class="primary-btn big-btn w-full">{{ isAmharic ? 'ግባ' : 'Sign in' }}</button>
 
        
       </form>
@@ -441,7 +439,7 @@
           <input type="tel" [(ngModel)]="signupData.phone" name="phone" required placeholder="09xxxxxxxx">
         </label>
         <label class="field">
-          <span>{{ isAmharic ? 'አለማ ስኬት' : 'Password' }}</span>
+          <span>{{ isAmharic ? 'ሚስጥር ቁጥር' : 'Password' }}</span>
           <input type="password" [(ngModel)]="signupData.password" name="password" required minlength="6">
         </label>
 
@@ -738,13 +736,16 @@
 
   <!-- RECEIPT UPLOAD -->
   <label *ngIf="checkoutForm.paymentMethod === 'telebirr' || checkoutForm.paymentMethod === 'cbe_birr'" class="field" style="margin-top: 15px;">
-    <span>{{ isAmharic ? 'የክፍያ ደረሰኝ (ስክሪንሽት) ይጫኑ' : 'Upload Transfer Receipt (Screenshot)' }}</span>
-    <input type="file" (change)="onReceiptSelected($event)" accept="image/*" style="margin-top: 5px;">
+    <span>{{ isAmharic ? 'የክፍያ ደረሰኝ (ስክሪንሽት ወይም PDF) ይጫኑ' : 'Upload Transfer Receipt (Screenshot or PDF)' }}</span>
+    <input type="file" (change)="onReceiptSelected($event)" accept="image/*,application/pdf" style="margin-top: 5px;">
   </label>
 
   <!-- RECEIPT PREVIEW -->
   <div *ngIf="receiptBase64 && (checkoutForm.paymentMethod === 'telebirr' || checkoutForm.paymentMethod === 'cbe_birr')" style="margin-top: 10px;">
-    <img [src]="receiptBase64" alt="Receipt Preview" style="max-width: 150px; border-radius: 6px; border: 1px solid #ccc;">
+    <img *ngIf="!isReceiptPdf" [src]="receiptBase64" alt="Receipt Preview" style="max-width: 150px; border-radius: 6px; border: 1px solid #ccc;">
+    <div *ngIf="isReceiptPdf" style="padding: 10px 14px; background: #eef9ff; border: 1px solid #b3e5fc; border-radius: 6px; font-size: 13px; color: #0288d1; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;">
+      📄 {{ isAmharic ? 'PDF ደረሰኝ ተያይዟል' : 'PDF Receipt Attached' }}
+    </div>
   </div>
 </section>
 
