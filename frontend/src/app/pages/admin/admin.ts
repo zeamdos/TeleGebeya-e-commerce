@@ -298,7 +298,7 @@ rejectPayment(): void {
   paymentStatusColor(status: string): string {
     const normalized = StatusMapper.normalizePaymentStatus(status);
     switch (normalized) {
-      case 'verified': return 'status-delivered';
+      case 'verified': return 'status-approved';
       case 'receipt_submitted': return 'status-shipping';
       case 'rejected': return 'status-cancelled';
       case 'awaiting_payment': return 'status-pending';

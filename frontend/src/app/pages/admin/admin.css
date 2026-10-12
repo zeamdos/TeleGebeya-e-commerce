@@ -33,7 +33,6 @@
   font-size: 13px;
   cursor: pointer;
 }
-.back-btn:hover { background: #f1f3f5; }
 .refresh-btn {
   padding: 10px 16px;
   background: #3390ec;
@@ -43,9 +42,7 @@
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
-  box-shadow: 0 3px 12px rgba(51,144,236,.22);
 }
-.refresh-btn:hover { background: #2a7bc9; }
 
 .admin-tabs {
   display: flex;
@@ -67,13 +64,10 @@
   font-size: 13.5px;
   cursor: pointer;
   color: #6c7680;
-  transition: all .15s;
 }
-.at-tab:hover { background: #f1f3f5; color: #1a1d21; }
 .at-tab-active {
-  background: #3390ec;
-  color: white !important;
-  box-shadow: 0 3px 12px rgba(51,144,236,.22);
+  background: #f1f3f5;
+  color: #111111 !important;
 }
 
 .admin-section { }
@@ -133,7 +127,6 @@
   font-size: 12px;
   cursor: pointer;
 }
-.qp-more:hover { background: #dde6ef; }
 .qp-list { padding: 6px 0; }
 .qp-empty {
   padding: 30px 20px;
@@ -235,8 +228,9 @@
 .status-pending { background: #f1f3f5; color: #111111; }
 .status-confirmed { background: #f1f3f5; color: #111111; }
 .status-shipping { background: #f1f3f5; color: #111111; }
-.status-delivered { background: #111111; color: #ffffff; }
-.status-cancelled { background: #111111; color: #ffffff; }
+.status-delivered { background: #333333; color: #ffffff; }
+.status-cancelled { background: #333333; color: #ffffff; }
+.status-approved { background: transparent; color: #111111; padding: 0; }
 
 /* Switch */
 .switch {
@@ -268,7 +262,6 @@
   background-color: white;
   border-radius: 50%;
   transition: .2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 .switch input:checked + .slider {
   background-color: #3390ec;
@@ -303,9 +296,7 @@
   margin-right: 6px;
 }
 .tb-btn.edit { background: #111111; color: #ffffff; }
-.tb-btn.edit:hover { background: #2a2a2a; }
 .tb-btn.del { background: #111111; color: #ffffff; }
-.tb-btn.del:hover { background: #2a2a2a; }
 
 .stock-badge {
   padding: 4px 10px;
@@ -363,6 +354,7 @@
   font-weight: 800;
   cursor: pointer;
 }
+.close-btn:hover { background: #dde6ef; }
 .modal-body {
   padding: 18px 20px;
   overflow-y: auto;
@@ -448,7 +440,6 @@
   cursor: pointer;
   color: #111111;
 }
-.ghost-btn:hover { background: #dde6ef; }
 .primary-btn {
   padding: 11px 18px;
   background: #111111;
@@ -458,9 +449,7 @@
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
-  box-shadow: 0 3px 12px rgba(0,0,0,.28);
 }
-.primary-btn:hover { background: #2a2a2a; }
 
 .order-item-name {
   font-size: 12px;
