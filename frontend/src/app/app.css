@@ -1350,9 +1350,9 @@ display: inline-block;
   border-color: #7dd3fc;
 }
 .waitlist-btn-active {
-  background: #f0fdf4 !important;
-  color: #16a34a !important;
-  border-color: #bbf7d0 !important;
+  background: #f1f3f5 !important;
+  color: #6c7680 !important;
+  border-color: #dde3ea !important;
 }
 
 .waitlist-box {

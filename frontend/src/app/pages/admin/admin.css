@@ -65,9 +65,10 @@
   cursor: pointer;
   color: #6c7680;
 }
+.at-tab:hover { background: #3390ec; color: #ffffff; }
 .at-tab-active {
-  background: #f1f3f5;
-  color: #111111 !important;
+  background: #3390ec;
+  color: #ffffff !important;
 }
 
 .admin-section { }
@@ -227,7 +228,7 @@
 }
 .status-pending { background: #f1f3f5; color: #111111; }
 .status-confirmed { background: #f1f3f5; color: #111111; }
-.status-shipping { background: #f1f3f5; color: #111111; }
+.status-shipping { background: #87ceeb; color: #ffffff; }
 .status-delivered { background: #333333; color: #ffffff; }
 .status-cancelled { background: #333333; color: #ffffff; }
 .status-approved { background: transparent; color: #111111; padding: 0; }

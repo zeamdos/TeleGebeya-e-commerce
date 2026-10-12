@@ -394,8 +394,9 @@ exports.getSellerOrders = async (req, res) => {
     }
     const sellerId = req.user.id || req.user._id;
     const orders = await Order.find({ 'items.seller': sellerId })
+      .select('orderNumber customerName phone totalAmount paymentMethod paymentStatus orderStatus escrowStatus payoutStatus commissionAmount sellerPayoutAmount items.createdAt')
       .sort({ createdAt: -1 })
-      .populate('items.product');
+      .limit(50);
 
     const filteredOrders = orders.map(order => {
       const plain = order.toObject();
