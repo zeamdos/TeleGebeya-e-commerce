@@ -394,7 +394,7 @@ exports.getSellerOrders = async (req, res) => {
     }
     const sellerId = req.user.id || req.user._id;
     const orders = await Order.find({ 'items.seller': sellerId })
-      .select('orderNumber customerName phone totalAmount paymentMethod paymentStatus orderStatus escrowStatus payoutStatus commissionAmount sellerPayoutAmount items.createdAt')
+      .select('orderNumber customerName phone totalAmount paymentMethod paymentStatus orderStatus escrowStatus payoutStatus commissionAmount sellerPayoutAmount items.name items.quantity items.price items.selectedColor items.seller items.product items.createdAt')
       .sort({ createdAt: -1 })
       .limit(50);
 
