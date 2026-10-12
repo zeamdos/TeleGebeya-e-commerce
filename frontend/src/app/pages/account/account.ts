@@ -8,12 +8,11 @@ import { TranslationService } from '../../services/translation';
 import { HttpClient } from '@angular/common/http';
 import { CURRENT_API_URLS } from '../../constants/api.constants';
 import { StatusMapper } from '../../utils/status-mapper';
-import { UpperCasePipe } from '@angular/common';
 
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [CommonModule, FormsModule, UpperCasePipe],
+  imports: [CommonModule, FormsModule],
   templateUrl: './account.html'
 })
 export class AccountPage implements OnInit {
@@ -82,8 +81,8 @@ isLoadingSellerOrders = signal<boolean>(false);
       next: (orders) => {
         const mappedOrders = orders.map(order => ({
           ...order,
-          paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus),
-          orderStatus: StatusMapper.mapOrderStatus(order.orderStatus)
+          paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus) as Order['paymentStatus'],
+          orderStatus: StatusMapper.mapOrderStatus(order.orderStatus) as Order['orderStatus']
         }));
         this.myOrders.set(mappedOrders);
         this.isLoadingOrders.set(false);
@@ -119,8 +118,8 @@ loadSellerOrders() {
     next: (orders) => {
       const mappedOrders = orders.map(order => ({
         ...order,
-        paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus),
-        orderStatus: StatusMapper.mapOrderStatus(order.orderStatus)
+        paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus) as Order['paymentStatus'],
+        orderStatus: StatusMapper.mapOrderStatus(order.orderStatus) as Order['orderStatus']
       }));
       this.mySellerOrders.set(mappedOrders);
       this.isLoadingSellerOrders.set(false);
@@ -143,8 +142,8 @@ canMarkShipped(order: Order): boolean {
       next: (orders) => {
         const mappedOrders = orders.map(order => ({
           ...order,
-          paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus),
-          orderStatus: StatusMapper.mapOrderStatus(order.orderStatus)
+          paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus) as Order['paymentStatus'],
+          orderStatus: StatusMapper.mapOrderStatus(order.orderStatus) as Order['orderStatus']
         }));
         this.myOrders.set(mappedOrders);
         this.isLoadingOrders.set(false);

@@ -120,8 +120,8 @@ isReviewOrderOpen = false;
         next: (list) => {
           const mappedOrders = list.map(order => ({
             ...order,
-            paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus),
-            orderStatus: StatusMapper.mapOrderStatus(order.orderStatus)
+            paymentStatus: StatusMapper.mapPaymentStatus(order.paymentStatus) as any,
+            orderStatus: StatusMapper.mapOrderStatus(order.orderStatus) as any
           }));
           this.orders.set(mappedOrders);
           resolve();
@@ -268,8 +268,8 @@ rejectPayment(): void {
         this.orders.update(orders => orders.map(o => o._id === orderId ? {
           ...o,
           ...updatedOrder,
-          paymentStatus: StatusMapper.mapPaymentStatus(updatedOrder.paymentStatus),
-          orderStatus: StatusMapper.mapOrderStatus(updatedOrder.orderStatus)
+          paymentStatus: StatusMapper.mapPaymentStatus(updatedOrder.paymentStatus) as any,
+          orderStatus: StatusMapper.mapOrderStatus(updatedOrder.orderStatus) as any
         } : o));
         this.showToast(this.isAmharic ? 'የትእዛዝ ሁኔታ ተሻሽሏል' : 'Order status updated');
         this.loadStats();
