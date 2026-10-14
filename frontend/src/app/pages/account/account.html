@@ -13,7 +13,7 @@
 
     <button 
       (click)="authService.logout()" 
-      class="px-4 py-2 text-xs font-bold text-red-100 bg-red-900/80 hover:bg-red-900/70 border border-red-500/30 rounded-xl transition cursor-pointer">
+      class="px-4 py-2 text-xs font-bold text-white bg-red-900/80 hover:bg-red-900/70 border border-red-500/30 rounded-xl transition cursor-pointer">
       Sign Out
     </button>
   </div>
@@ -79,18 +79,28 @@
 
   <!-- Tab Content 2: Order History -->
   <div *ngIf="activeTab === 'orders'" class="space-y-3">
-    <h2 class="text-base font-bold text-green-950 mb-4">Order History</h2>
+    <h2 class="text-base font-bold text-green-950 mb-4">{{ i18n.isAmharic() ? 'የትእዛዝ ታሪክ' : 'Order History' }}</h2>
+
+    <div *ngIf="isLoadingOrders()" class="p-8 text-center text-gray-500 bg-white rounded-2xl border border-gray-100">
+      <div class="inline-block animate-spin w-6 h-6 border-2 border-black border-t-transparent rounded-full mb-2"></div>
+      <p class="text-xs">{{ i18n.isAmharic() ? 'ትእዛዞች በመጫን ላይ ናቸው…' : 'Loading orders…' }}</p>
+    </div>
+
+    <div *ngIf="!isLoadingOrders() && myOrders().length === 0" class="p-8 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">
+      <p class="text-sm font-semibold text-gray-600">{{ i18n.isAmharic() ? 'ምንም ትእዛዝ አልተገኘም' : 'No orders yet' }}</p>
+      <p class="text-xs mt-1 text-gray-400">{{ i18n.isAmharic() ? 'የፈጸሙት ትእዛዝ እዚህ ይታያል' : 'Orders you place will appear here' }}</p>
+    </div>
 
     <div *ngFor="let order of myOrders()" class="p-4 bg-white border border-gray-200 rounded-2xl flex flex-col gap-3 text-xs">
       <div class="flex justify-between items-center">
         <div>
-          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} ({{ order.items?.length || 0 }} items)</p>
+          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} ({{ order.items.length || 0 }} {{ i18n.isAmharic() ? 'እቃዎች' : 'items' }})</p>
           <p class="text-gray-400 text-[11px]">{{ order.createdAt | date:'short' }}</p>
         </div>
         <div class="text-right">
           <p class="font-bold text-emerald-900">{{ order.totalAmount }} ETB</p>
-          <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-            {{ formatOrderStatus(order.orderStatus) }}
+          <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-800 text-white">
+            {{ order.orderStatus }}
           </span>
         </div>
       </div>
@@ -98,28 +108,28 @@
       <!-- Action Buttons properly placed INSIDE the loop -->
       <div class="flex gap-2 justify-end">
         <button
-    *ngIf="canConfirmDelivery(order)"
-    (click)="confirmDelivery(order)"
-    class="px-3 py-1.5 bg-gray-200 text-gray-900 border border-gray-300 text-[11px] font-bold rounded-lg hover:bg-gray-300 transition cursor-pointer">
-    Confirm Delivered
-  </button>
-  <button
-    *ngIf="canCancel(order)"
-    (click)="cancelOrder(order)"
-    class="px-3 py-1.5 bg-gray-200 text-gray-900 border border-gray-300 text-[11px] font-bold rounded-lg hover:bg-gray-300 transition cursor-pointer">
-    ✕ Cancel Order
-  </button>
+          *ngIf="canConfirmDelivery(order)"
+          (click)="confirmDelivery(order)"
+          class="px-3 py-1.5 bg-gray-900 text-white border border-gray-900 text-[11px] font-bold rounded-lg hover:bg-gray-700 transition cursor-pointer">
+          Confirm Delivered
+        </button>
+        <button
+          *ngIf="canCancel(order)"
+          (click)="cancelOrder(order)"
+          class="px-3 py-1.5 bg-gray-900 text-white border border-gray-900 text-[11px] font-bold rounded-lg hover:bg-gray-700 transition cursor-pointer">
+          ✕ Cancel Order
+        </button>
       </div>
     </div>
   </div>
 
   <!-- Tab Content 3: Seller Hub (Conditional) -->
  <div *ngIf="activeTab === 'seller'" class="space-y-6">
-  <div class="p-6 bg-emerald-50/50 border border-emerald-200 rounded-2xl">
+  <div class="p-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
     <h2 class="text-base font-bold text-green-950 mb-2">Merchant Management</h2>
     <p class="text-xs text-gray-600 mb-4">Manage your store listings and sync updates directly from Telegram.</p>
     
-    <button class="px-4 py-2 bg-gray-200 text-gray-900 border border-gray-300 text-xs font-bold rounded-xl hover:bg-gray-300 transition cursor-pointer">
+    <button (click)="openAddProductModal()" class="px-4 py-2 bg-gray-100 text-black border border-gray-300 text-xs font-bold rounded-xl hover:bg-gray-100 transition cursor-pointer">
       Post New Product
     </button>
   </div>
@@ -127,20 +137,25 @@
   <div>
     <h2 class="text-base font-bold text-green-950 mb-4">Orders to Fulfill</h2>
 
-    <div *ngIf="mySellerOrders().length === 0" class="text-xs text-gray-500">
+    <div *ngIf="isLoadingSellerOrders()" class="p-6 text-center text-gray-500 bg-white rounded-2xl border border-gray-100">
+      <div class="inline-block animate-spin w-5 h-5 border-2 border-black-100 border-t-transparent rounded-full mb-2"></div>
+      <p class="text-xs">{{ i18n.isAmharic() ? 'ትእዛዞች በመጫን ላይ ናቸው…' : 'Loading seller orders…' }}</p>
+    </div>
+
+    <div *ngIf="!isLoadingSellerOrders() && mySellerOrders().length === 0" class="text-xs text-gray-500">
       No orders yet.
     </div>
 
     <div *ngFor="let order of mySellerOrders()" class="p-4 bg-white border border-gray-200 rounded-2xl flex flex-col gap-3 text-xs mb-3">
       <div class="flex justify-between items-center">
         <div>
-          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} ({{ order.items?.length || 0 }} items)</p>
+          <p class="font-bold text-green-950">{{ order.orderNumber || order._id }} ({{ order.items.length || 0 }} items)</p>
           <p class="text-gray-400 text-[11px]">{{ order.createdAt | date:'short' }}</p>
         </div>
         <div class="text-right">
           <p class="font-bold text-emerald-900">{{ order.totalAmount }} ETB</p>
-          <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-            {{ formatOrderStatus(order.orderStatus) }}
+          <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-800 text-white">
+            {{ order.orderStatus }}
           </span>
         </div>
       </div>

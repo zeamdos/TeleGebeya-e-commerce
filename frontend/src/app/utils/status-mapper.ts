@@ -3,24 +3,25 @@ export class StatusMapper {
     const map: Record<string, string> = {
       'verified': 'Paid',
       'receipt_submitted': 'Verification Pending',
-      'awaiting_payment': 'pending',
+      'awaiting_payment': 'Pending',
       'rejected': 'Rejected',
       'paid': 'Paid',
       'failed': 'Rejected',
-      'unpaid': 'pending'
+      'unpaid': 'Pending'
     };
     return map[status] || status;
   }
 
   static mapOrderStatus(status: string): string {
     const map: Record<string, string> = {
-      'confirmed': 'Accepted',
+      'confirmed': 'Confirmed',
       'shipping': 'Shipped',
       'delivered': 'Delivered',
       'cancelled': 'Canceled',
-      'accepted': 'Accepted',
+      'accepted': 'Confirmed',
       'shipped': 'Shipped',
-      'canceled': 'Canceled'
+      'canceled': 'Canceled',
+      'pending': 'Pending'
     };
     return map[status] || status;
   }
@@ -50,7 +51,8 @@ export class StatusMapper {
       'delivered': 'delivered',
       'Canceled': 'cancelled',
       'canceled': 'cancelled',
-      'Cancelled': 'cancelled'
+      'Cancelled': 'cancelled',
+      'Pending': 'pending'
     };
     return map[status] || status;
   }

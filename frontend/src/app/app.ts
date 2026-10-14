@@ -7,6 +7,7 @@ import { ProductService, Product } from './services/product';
 import { OrderService } from './services/order';
 import { TranslationService } from './services/translation';
 import { ConfigService } from './services/config';
+import { ErrorHandlerService } from './services/error-handler.service';
 import { AccountPage } from './pages/account/account';
 import { AdminPage } from './pages/admin/admin';
 import { HttpClient } from '@angular/common/http'
@@ -25,6 +26,7 @@ export class App implements OnInit {
   orderService = inject(OrderService);
   i18n = inject(TranslationService);
   configService = inject(ConfigService);
+  errorHandler = inject(ErrorHandlerService);
 selectedBase64Image: string = '';
   title = signal('TeleGebeya');
 
@@ -54,6 +56,7 @@ selectedBase64Image: string = '';
   private carouselTimer: any = null;
   selectedFile: File | null = null;
   imagePreview: string | null = null;
+
 
 constructor(private http: HttpClient) {}
 
@@ -126,7 +129,7 @@ constructor(private http: HttpClient) {}
     if (input.files && input.files[0]) {
       const file = input.files[0];
       if (file.size > 5 * 1024 * 1024) {
-        alert(this.isAmharic ? 'የደረሰኝ ፋይል መጠን ከ5MB በታች መሆን አለበት' : 'Receipt file size must be under 5MB');
+        this.showToast(this.isAmharic ? 'የደረሰኝ ፋይል መጠን ከ5MB በታች መሆን አለበት' : 'Receipt file size must be under 5MB', 'error');
         input.value = '';
         return;
       }
@@ -164,6 +167,7 @@ constructor(private http: HttpClient) {}
       paymentMethod: this.checkoutForm.paymentMethod,
       paymentPhone: this.checkoutForm.telebirrPhone,
       receiptImage: this.receiptBase64,
+      transactionId: this.checkoutForm.transactionId ? this.checkoutForm.transactionId.trim() : undefined,
       paymentStatus: this.checkoutForm.paymentMethod === 'cash_on_delivery' ? 'pending' : 'pending',
       items: this.cartService.items().map(item => ({
         product: item._id,
@@ -183,12 +187,12 @@ constructor(private http: HttpClient) {}
         this.closeCheckoutModal();
         this.isOrderSuccessModalOpen = true;
         this.receiptBase64 = '';
-        this.showToast(this.isAmharic ? 'ትእዛዝዎ ተልኳል' : 'Order placed successfully');
+        this.showToast(this.isAmharic ? 'ትእዛዝዎ ተልኳል' : 'Order placed successfully', 'success');
       },
       error: (err: any) => {
         console.error('Order submission failed', err);
-        const errMsg = err.error?.message || err.message || 'Order could not be placed. Please try again.';
-        alert(errMsg);
+        const formatted = this.errorHandler.formatError(err, 'place-order', this.isAmharic);
+        this.showToast(formatted.userMessage, 'error');
       }
     });
   }
@@ -269,9 +273,14 @@ constructor(private http: HttpClient) {}
     houseNumber: '',
     notes: '',
     paymentMethod: 'telebirr' as 'telebirr' | 'cash_on_delivery' | 'cbe_birr',
-    telebirrPhone: ''
+    telebirrPhone: '',
+    transactionId: ''
   };
   isSubmittingOrder = false;
+
+  reviewRating = 5;
+  reviewComment = '';
+  isSubmittingReview = false;
 
   authMode: 'signin' | 'signup' = 'signin';
   selectedRole: 'buyer' | 'seller' = 'buyer';
@@ -372,6 +381,7 @@ constructor(private http: HttpClient) {}
 
   filterCategory(categoryValue: string) {
     this.selectedCategory = categoryValue;
+    this.currentPage = 'home';
     this.loadProducts();
   }
 
@@ -433,10 +443,31 @@ constructor(private http: HttpClient) {}
     this.showToast(this.isAmharic ? 'የማድረሻ ቦታ ተቀይሯል' : 'Delivery location updated');
   }
 
-  openSigninModal(mode: 'signin' | 'signup' = 'signin') {
+  openSigninModal(mode: 'signin' | 'signup' = 'signin', event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     this.authMode = mode;
     this.authErrorMessage = '';
     this.isSigninModalOpen = true;
+  }
+
+  browseAllProducts(event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    this.selectedCategory = 'All';
+    this.searchQuery = '';
+    this.currentPage = 'home';
+    this.loadProducts();
+    setTimeout(() => {
+      const el = document.getElementById('products-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 50);
   }
 
   closeSigninModal() {
@@ -510,6 +541,12 @@ constructor(private http: HttpClient) {}
     this.selectedColor = this.getProductColorOptions(product)[0]?.name || '';
     this.detailQuantity = 1;
     this.isProductDetailModalOpen = true;
+    this.trackEvent('view_item', {
+      item_id: product._id,
+      item_name: product.name,
+      price: product.price,
+      category: product.category
+    });
   }
 
   closeProductDetail() {
@@ -517,7 +554,11 @@ constructor(private http: HttpClient) {}
     this.selectedProduct = null;
   }
 
-  openQuickPostModal() {
+  openQuickPostModal(event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     const user = this.getUser();
     this.sellerPost = {
       name: '',
@@ -542,7 +583,7 @@ submitSellerPost() {
 if (this.isSubmittingSellerPost) return;
 
     if (!this.sellerPost.name || !this.sellerPost.price) {
-      alert(this.isAmharic ? 'እባክዎ የዕቃውን ስም እና ዋጋ ያስገቡ' : 'Please provide product name and price');
+      this.showToast(this.isAmharic ? 'እባክዎ የዕቃውን ስም እና ዋጋ ያስገቡ' : 'Please provide product name and price', 'error');
       return;
     }
     const colors = this.normalizeProductColors(this.sellerPost.colors).map(item => ({
@@ -571,14 +612,14 @@ if (this.isSubmittingSellerPost) return;
       next: (created) => {
         this.closeQuickPostModal();
         this.products.update(list => [created, ...list]);
-        this.showToast(this.isAmharic ? 'ዕቃው በተሳካ ሁኔታ ተለጥፏል' : 'Product listed successfully');
+        this.showToast(this.isAmharic ? 'ዕቃው በተሳካ ሁኔታ ተለጥፏል' : 'Product listed successfully', 'success');
         this.selectedBase64Image = '';
       },
       error: (err) => {
-         this.isSubmittingSellerPost = false;
+        this.isSubmittingSellerPost = false;
         console.error('Failed to post product', err);
-        const msg = err.error?.message || 'Failed to post product. Please try again.';
-        this.showToast(msg);
+        const formatted = this.errorHandler.formatError(err, 'create-product', this.isAmharic);
+        this.showToast(formatted.userMessage, 'error');
       }
     });
   }
@@ -662,7 +703,7 @@ if (this.isSubmittingSellerPost) return;
   submitWaitlist() {
     if (!this.waitlistForm.productId) return;
     if (!this.waitlistForm.phone && !this.getUser()) {
-      alert(this.isAmharic ? 'እባክዎ ስልክ ቁጥር ያስገቡ' : 'Please provide a phone number so we can notify you.');
+      this.showToast(this.isAmharic ? 'እባክዎ ስልክ ቁጥር ያስገቡ' : 'Please provide a phone number so we can notify you.', 'error');
       return;
     }
 
@@ -684,13 +725,13 @@ if (this.isSubmittingSellerPost) return;
         const msg = this.isAmharic
           ? 'በተጠባባቂ ዝርዝር ውስጥ ተመዝግበዋል! እቃው ሲገባ ይገለጽልዎታል'
           : "You've been added to the waitlist! We'll notify you when it's back in stock.";
-        this.showToast(msg);
+        this.showToast(msg, 'success');
       },
       error: (err) => {
         this.isSubmittingWaitlist = false;
         console.error('Waitlist submission failed:', err);
         const errMsg = err.error?.message || 'Failed to join waitlist. Please try again.';
-        this.showToast(errMsg);
+        this.showToast(errMsg, 'error');
       }
     });
   }
@@ -711,11 +752,11 @@ if (this.isSubmittingSellerPost) return;
   }
 
   openCheckoutModal() {
-     this.checkoutForm.subcity = this.deliveryDetails.subcity;
-  this.checkoutForm.streetAddress = this.deliveryDetails.streetAddress;
-  this.checkoutForm.houseNumber = this.deliveryDetails.houseNumber;
+    this.checkoutForm.subcity = this.deliveryDetails.subcity;
+    this.checkoutForm.streetAddress = this.deliveryDetails.streetAddress;
+    this.checkoutForm.houseNumber = this.deliveryDetails.houseNumber;
     if (this.cartService.items().length === 0) {
-      alert(this.isAmharic ? 'ቅርጫትዎ ባዶ ነው' : 'Your cart is empty.');
+      this.showToast(this.isAmharic ? 'ቅርጫትዎ ባዶ ነው' : 'Your cart is empty.', 'error');
       return;
     }
 
@@ -734,18 +775,18 @@ if (this.isSubmittingSellerPost) return;
     this.isCheckoutModalOpen = false;
   }
 
- submitOrder() {
+  submitOrder() {
     if (!this.checkoutForm.fullName || !this.checkoutForm.phone) {
-      alert(this.isAmharic ? 'እባክዎ ሙሉ ስም እና ስልክ ቁጥር ያስገቡ' : 'Please provide full name and phone number');
+      this.showToast(this.isAmharic ? 'እባክዎ ሙሉ ስም እና ስልክ ቁጥር ያስገቡ' : 'Please provide full name and phone number', 'error');
       return;
     }
 
-  if (!this.checkoutForm.streetAddress?.trim() || !this.checkoutForm.houseNumber?.trim()) {
-    this.closeCheckoutModal();
-    this.openDeliveryModal();
-    this.showToast(this.isAmharic ? 'እባክዎ የማድረሻ አድራሻዎን ይሙሉ' : 'Please fill in your delivery address first');
-    return;
-  }
+    if (!this.checkoutForm.streetAddress?.trim() || !this.checkoutForm.houseNumber?.trim()) {
+      this.closeCheckoutModal();
+      this.openDeliveryModal();
+      this.showToast(this.isAmharic ? 'እባክዎ የማድረሻ አድራሻዎን ይሙሉ' : 'Please fill in your delivery address first', 'error');
+      return;
+    }
 
     this.isSubmittingOrder = true;
     const user = this.getUser();
@@ -761,6 +802,7 @@ if (this.isSubmittingSellerPost) return;
       paymentMethod: this.checkoutForm.paymentMethod,
       paymentPhone: this.checkoutForm.telebirrPhone,
       receiptImage: this.receiptBase64,
+      transactionId: this.checkoutForm.transactionId ? this.checkoutForm.transactionId.trim() : undefined,
       paymentStatus: this.checkoutForm.paymentMethod === 'cash_on_delivery' ? 'pending' : 'pending',
       items: this.cartService.items().map(item => ({
         product: item._id,
@@ -781,15 +823,14 @@ if (this.isSubmittingSellerPost) return;
         this.closeCheckoutModal();
         this.isOrderSuccessModalOpen = true;
         this.receiptBase64 = '';
+        this.showToast(this.isAmharic ? 'ትእዛዝዎ ተልኳል' : 'Order placed successfully', 'success');
         this.loadProducts();
       },
       error: (err: any) => {
         this.isSubmittingOrder = false;
         console.error('Order placement failed', err);
-        const errMsg = err.error?.message || err.message;
-        if (errMsg) {
-          alert(errMsg);
-        }
+        const formatted = this.errorHandler.formatError(err, 'submit-order', this.isAmharic);
+        this.showToast(formatted.userMessage, 'error');
       }
     });
   }
@@ -817,7 +858,8 @@ if (this.isSubmittingSellerPost) return;
         this.showToast(this.isAmharic ? 'እንኳን በደህና መጡ' : 'Signed in successfully');
       },
       error: (err: any) => {
-        this.authErrorMessage = err.error?.message || 'Invalid phone or password';
+        const formatted = this.errorHandler.formatError(err, 'auth-signin', this.isAmharic);
+        this.authErrorMessage = formatted.userMessage;
       }
     });
   }
@@ -834,17 +876,68 @@ if (this.isSubmittingSellerPost) return;
         this.showToast(this.isAmharic ? 'መለያ ተፈጥሯል' : 'Account created');
       },
       error: (err: any) => {
-        this.authErrorMessage = err.error?.message || 'Registration failed';
+        const formatted = this.errorHandler.formatError(err, 'auth-signup', this.isAmharic);
+        this.authErrorMessage = formatted.userMessage;
       }
     });
   }
 
+  submitReview(productId?: string) {
+    const id = productId || this.selectedProduct?._id;
+    if (!id || this.isSubmittingReview) return;
+    this.isSubmittingReview = true;
+    const user = this.getUser();
+    this.productService.addReview(id, {
+      rating: this.reviewRating,
+      comment: this.reviewComment,
+      userName: user?.fullName || (this.isAmharic ? 'የተረጋገጠ ደንበኛ' : 'Verified Customer')
+    }).subscribe({
+      next: (updatedProduct: any) => {
+        this.isSubmittingReview = false;
+        this.reviewComment = '';
+        this.reviewRating = 5;
+        if (this.selectedProduct && this.selectedProduct._id === id) {
+          this.selectedProduct = {
+            ...this.selectedProduct,
+            rating: updatedProduct.rating,
+            reviewsCount: updatedProduct.reviewsCount,
+            reviews: updatedProduct.reviews
+          };
+        }
+        this.products.update(list =>
+          list.map(p => p._id === id ? { ...p, rating: updatedProduct.rating, reviewsCount: updatedProduct.reviewsCount, reviews: updatedProduct.reviews } : p)
+        );
+        this.showToast(this.isAmharic ? 'ግምገማዎ በተሳካ ሁኔታ ተልኳል!' : 'Review submitted successfully!', 'success');
+      },
+      error: (err: any) => {
+        this.isSubmittingReview = false;
+        const formatted = this.errorHandler.formatError(err, 'submit-review', this.isAmharic);
+        this.showToast(formatted.userMessage, 'error');
+      }
+    });
+  }
 
-  showToast(msg: string) {
+  toastType = signal<'default' | 'error' | 'success'>('default');
+  private toastTimer: any = null;
+
+  showToast(msg: string, type: 'default' | 'error' | 'success' = 'default') {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.toastType.set(type);
     this.toastMessage.set(msg);
-    setTimeout(() => {
+    const duration = type === 'error' ? 4500 : 2800;
+    this.toastTimer = setTimeout(() => {
       this.toastMessage.set('');
-    }, 2800);
+      this.toastType.set('default');
+      this.toastTimer = null;
+    }, duration);
+  }
+
+  trackEvent(eventName: string, parameters?: any) {
+    if (typeof (window as any).gtag !== 'undefined') {
+      (window as any).gtag('event', eventName, parameters);
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const { generateThumbnail } = require('../utils/imageThumbnail');
+const { uploadImage } = require('../config/cloudinary');
 
 exports.getProducts = async (req, res) => {
   try {
@@ -96,7 +97,14 @@ const sumVariantStock = (colors) => {
 exports.createProduct = async (req, res) => {
   try {
     const normalizedColors = normalizeVariantList(req.body.colors ?? req.body.color ?? req.body.stock);
-    const finalImageUrl = req.file ? req.file.path : (req.body.imageUrl || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80');
+    let finalImageUrl = req.file ? req.file.path : (req.body.imageUrl || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80');
+
+    // Attempt Cloudinary free CDN upload if configured
+    const cloudUrl = await uploadImage(finalImageUrl, 'telegebeya/products');
+    if (cloudUrl) {
+      finalImageUrl = cloudUrl;
+    }
+
     const thumbnailUrl = await generateThumbnail(finalImageUrl);
 
     const payload = {
@@ -140,7 +148,9 @@ exports.updateProduct = async (req, res) => {
         : sumVariantStock(normalizedColors) || 25,
     };
     if (req.body.imageUrl && req.body.imageUrl !== existing.imageUrl) {
-      payload.thumbnailUrl = await generateThumbnail(req.body.imageUrl);
+      const cloudUrl = await uploadImage(req.body.imageUrl, 'telegebeya/products');
+      payload.imageUrl = cloudUrl || req.body.imageUrl;
+      payload.thumbnailUrl = await generateThumbnail(payload.imageUrl);
     } else {
       delete payload.imageUrl;      // never blank out the existing image
       delete payload.thumbnailUrl;
@@ -172,5 +182,48 @@ exports.deleteProduct = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.addProductReview = async (req, res) => {
+  try {
+    const { rating, comment, userName } = req.body;
+    const numRating = Number(rating);
+    if (!numRating || numRating < 1 || numRating > 5) {
+      return res.status(400).json({ message: 'እባክዎ ከ1 እስከ 5 መካከል ኮከብ ይምረጡ / Rating must be between 1 and 5 stars.' });
+    }
+
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: 'ዕቃው አልተገኘም / Product not found' });
+    }
+
+    if (!Array.isArray(product.reviews)) {
+      product.reviews = [];
+    }
+
+    const reviewerName = (userName && userName.trim()) || (req.user ? (req.user.fullName || req.user.phone) : 'Customer');
+    const reviewerId = req.user ? (req.user.id || req.user._id) : undefined;
+
+    product.reviews.unshift({
+      user: reviewerId,
+      userName: reviewerName,
+      rating: Math.round(numRating),
+      comment: (comment || '').trim(),
+      createdAt: new Date()
+    });
+
+    product.reviewsCount = product.reviews.length;
+    const sum = product.reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+    product.rating = Math.round((sum / product.reviewsCount) * 10) / 10;
+
+    await product.save();
+    return res.status(201).json({
+      message: 'አስተያየትዎ በተሳካ ሁኔታ ተመዝግቧል! / Review submitted successfully!',
+      product
+    });
+  } catch (error) {
+    console.error('Review submission error:', error);
+    return res.status(500).json({ message: error.message });
   }
 };

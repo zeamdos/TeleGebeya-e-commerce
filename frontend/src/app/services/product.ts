@@ -132,6 +132,14 @@ export interface ProductColorVariant {
   stock: number;
 }
 
+export interface ProductReview {
+  user?: string;
+  userName?: string;
+  rating: number;
+  comment?: string;
+  createdAt?: string;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -149,6 +157,7 @@ export interface Product {
   telegramPostUrl?: string;
   rating?: number;
   reviewsCount?: number;
+  reviews?: ProductReview[];
   featured?: boolean;
   createdAt?: string;
   waitlist?: Array<{ user?: string; phone?: string; name?: string; selectedColor?: string }>;
@@ -242,5 +251,14 @@ export class ProductService {
       headers = headers.set('Authorization', `Bearer ${token}`);
     }
     return this.http.post(`${this.apiUrl}/${productId}/waitlist`, data, { headers });
+  }
+
+  addReview(productId: string, data: { rating: number; comment?: string; userName?: string }): Observable<any> {
+    const token = this.authService.getToken();
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    return this.http.post(`${this.apiUrl}/${productId}/reviews`, data, { headers });
   }
 }

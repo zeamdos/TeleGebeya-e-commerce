@@ -27,6 +27,13 @@ sellerTelebirr: { type: String, default: '' },
   telegramPostUrl: { type: String, default: '' },
   rating: { type: Number, default: 4.8 },
   reviewsCount: { type: Number, default: 0 },
+  reviews: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userName: { type: String, default: 'Customer' },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now }
+  }],
   featured: { type: Boolean, default: false },
   tags: [{ type: String }],
   waitlist: [{

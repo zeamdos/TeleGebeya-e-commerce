@@ -47,6 +47,7 @@ exports.createOrder = async (req, res) => {
       items,
       totalAmount,
       paymentMethod = 'cash_on_delivery',
+      transactionId,
     } = req.body;
 
     const userId = req.user?.id || req.user?._id || req.body.userId;
@@ -89,6 +90,18 @@ if (!streetAddress || !streetAddress.trim() || !houseNumber || !houseNumber.trim
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ message: 'Please select a valid payment method.' });
+    }
+
+    const cleanTxnId = transactionId ? String(transactionId).trim().toUpperCase() : '';
+    if (cleanTxnId) {
+      const existingTxn = await Order.findOne({ transactionId: cleanTxnId }).session(session);
+      if (existingTxn) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).json({
+          message: 'ይህ የክፍያ መለያ ቁጥር (Transaction ID) ቀድሞ ጥቅም ላይ ውሏል። እባክዎ ከSMS ትክክለኛውን ያስገቡ። / This Transaction ID has already been used for an order. Please verify your payment SMS.'
+        });
+      }
     }
 
     const productIds = items.map(it => it.product).filter(Boolean);
@@ -227,6 +240,7 @@ if (!streetAddress || !streetAddress.trim() || !houseNumber || !houseNumber.trim
       items: normalizedItems,
       totalAmount: finalTotal,
       paymentMethod,
+      transactionId: cleanTxnId || undefined,
       receiptImage: req.body.receiptImage || '',
       paymentStatus: (paymentMethod !== 'cash_on_delivery' && req.body.receiptImage) ? 'receipt_submitted' : 'awaiting_payment',
       orderStatus: 'pending',

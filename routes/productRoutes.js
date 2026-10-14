@@ -3,7 +3,7 @@ const router = express.Router();
 const upload = require('../middleware/upload');
 const Product = require('../models/Product');
 const User = require('../models/user');
-const { getProducts, getProductById, createProduct, updateProduct, deleteProduct, getCategories, getMyProducts } = require('../controllers/productController');
+const { getProducts, getProductById, createProduct, updateProduct, deleteProduct, getCategories, getMyProducts, addProductReview } = require('../controllers/productController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { optionalProtect } = require('../middleware/authMiddleware');
 
@@ -91,6 +91,8 @@ router.post('/:id/restock', protect, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+router.post('/:id/reviews', optionalProtect, addProductReview);
 
 router.route('/:id')
   .get(getProductById)

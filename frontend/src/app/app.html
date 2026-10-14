@@ -109,24 +109,22 @@
             *ngFor="let slide of heroCarouselSlides; let i = index"
             class="carousel-slide"
             [style.backgroundImage]="'url(' + slide.imageUrl + ')'"
-            (click)="openProductDetail(products()[0] || null)"
           >
             <div class="slide-overlay"></div>
             <div class="slide-content">
-              <!--<div class="slide-tag">
-                {{ i + 1 }}/{{ heroCarouselSlides.length }} {{ isAmharic ? 'በተለምዶ የሚሸጥ' : 'Featured' }}
-              </div> -->
               <h1 class="slide-title">{{ isAmharic ? slide.title.am : slide.title.en }}</h1>
               <p class="slide-subtitle">{{ isAmharic ? slide.subtitle.am : slide.subtitle.en }}</p>
-              <a class="slide-cta" (click)="openQuickPostModal()" *ngIf="isSeller">
-                {{ isAmharic ? 'እቃዎትን አስገባ' : 'List your products' }}
-              </a>
-              <a class="slide-cta" (click)="openSigninModal('signup')" *ngIf="!getUser()">
-                {{ isAmharic ? 'አሁኑኑ ይመዝገቡ' : 'Create account' }}
-              </a>
-              <a class="slide-cta" (click)="filterCategory('All')" *ngIf="getUser() && !isSeller">
-                {{ isAmharic ? 'ሁሉም ምርቶችን ይመልከቱ' : 'Browse all products' }}
-              </a>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="slide-cta" (click)="openQuickPostModal($event)" *ngIf="isSeller">
+                  {{ isAmharic ? 'እቃዎትን አስገባ' : 'List your products' }}
+                </button>
+                <button type="button" class="slide-cta" (click)="browseAllProducts($event)">
+                  {{ isAmharic ? 'ሁሉም ምርቶችን ይመልከቱ' : 'Browse all products' }}
+                </button>
+                <button type="button" class="slide-cta secondary-cta" (click)="openSigninModal('signup', $event)" *ngIf="!getUser()">
+                  {{ isAmharic ? 'ይመዝገቡ' : 'Sign up' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -162,7 +160,7 @@
     </section>
 
     <!-- PRODUCT GRID -->
-    <section class="products-section">
+    <section id="products-section" class="products-section">
       <div class="section-head">
         <h2>
           <span class="sec-title-main">
@@ -218,6 +216,11 @@
 
           <div class="product-info">
             <h3 class="product-name">{{ product.name }}</h3>
+            <div class="product-rating-row" style="display:flex;align-items:center;gap:4px;font-size:0.82rem;color:#f59e0b;margin-bottom:4px;">
+              <span>★</span>
+              <strong style="color:var(--text, #111827);">{{ (product.rating || 4.8) | number:'1.1-1' }}</strong>
+              <span style="color:#6b7280;font-size:0.75rem;">({{ product.reviewsCount || (product.reviews?.length) || 0 }})</span>
+            </div>
             <div class="product-price">
               <span class="birr">ብር</span>
               <span class="amount">{{ product.price | number:'1.0-0':'en-US' }}</span>
@@ -244,7 +247,7 @@
                   [disabled]="!hasStock(product, 1)"
                   (click)="addToCart(product, 1, $event)"
                 >
-                   {{ isAmharic ? 'አክል' : 'Add' }}
+                   {{ isAmharic ? 'ጨምር' : 'Add' }}
                 </button>
                 <button
                   type="button"
@@ -265,7 +268,7 @@
               >
                 {{ isWaitlisted(product)
                   ? (isAmharic ? 'ተመዝግበዋል' : 'Waitlisted')
-                  : (isAmharic ? ' ተጠባባቂ ዝርዝር' : ' Join Waitlist') }}
+                  : (isAmharic ? 'ለተጠባባቂ ዝርዝር ተመዝገብ' : ' Join Waitlist') }}
               </button>
             </div>
           </div>
@@ -475,6 +478,12 @@
           <span class="big-amount">{{ selectedProduct.price | number:'1.0-0':'en-US' }}</span>
         </div>
 
+        <div class="detail-rating-row" style="display:flex;align-items:center;gap:6px;font-size:0.95rem;color:#f59e0b;margin-bottom:8px;">
+          <span>★</span>
+          <strong style="color:var(--text, #111827);">{{ (selectedProduct.rating || 4.8) | number:'1.1-1' }}</strong>
+          <span style="color:#6b7280;font-size:0.85rem;">({{ selectedProduct.reviewsCount || (selectedProduct.reviews?.length) || 0 }} {{ isAmharic ? 'ግምገማዎች' : 'reviews' }})</span>
+        </div>
+
         <div class="detail-stock">
           <ng-container *ngIf="selectedProduct.stock !== undefined">
             <span
@@ -571,6 +580,67 @@
               {{ isWaitlisted(selectedProduct, selectedColor)
                 ? (isAmharic ? 'በተጠባባቂ ዝርዝር ውስጥ ተመዝግበዋል' : 'You are on the Waitlist')
                 : (isAmharic ? ' በተጠባባቂ ዝርዝር ውስጥ ይግቡ' : ' Join Waitlist (Get Notified)') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- CUSTOMER REVIEWS & RATING SECTION -->
+        <div class="reviews-section" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:18px;">
+          <h4 style="font-size:1rem;font-weight:600;margin:0 0 12px 0;display:flex;align-items:center;justify-content:space-between;">
+            <span>{{ isAmharic ? 'የደንበኞች ግምገማዎች' : 'Customer Reviews' }}</span>
+            <span style="font-size:0.85rem;color:#f59e0b;font-weight:bold;">
+              ★ {{ (selectedProduct.rating || 4.8) | number:'1.1-1' }} / 5.0
+            </span>
+          </h4>
+
+          <!-- Existing Reviews List -->
+          <div *ngIf="selectedProduct.reviews && selectedProduct.reviews.length > 0" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;max-height:180px;overflow-y:auto;padding-right:4px;">
+            <div *ngFor="let rev of selectedProduct.reviews" style="background:#f8fafc;padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:0.85rem;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <strong style="color:#1e293b;">{{ rev.userName || 'Customer' }}</strong>
+                <span style="color:#f59e0b;">{{ '★'.repeat(rev.rating || 5) }}</span>
+              </div>
+              <p *ngIf="rev.comment" style="margin:0;color:#475569;font-size:0.83rem;">{{ rev.comment }}</p>
+            </div>
+          </div>
+          <div *ngIf="!selectedProduct.reviews || selectedProduct.reviews.length === 0" style="margin-bottom:14px;color:#94a3b8;font-size:0.85rem;">
+            {{ isAmharic ? 'እስካሁን ምንም ግምገማ የለም። የመጀመሪያው ገምጋሚ ይሁኑ!' : 'No written reviews yet. Be the first to leave a review!' }}
+          </div>
+
+          <!-- Add Review Form -->
+          <div class="add-review-box" style="background:#f1f5f9;padding:12px;border-radius:8px;">
+            <div style="font-weight:600;font-size:0.85rem;margin-bottom:8px;color:#1e293b;">
+              {{ isAmharic ? 'ደረጃ ይስጡ & አስተያየት ይጻፉ' : 'Rate & Review This Product' }}
+            </div>
+            <!-- Star Picker -->
+            <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
+              <button
+                *ngFor="let star of [1, 2, 3, 4, 5]"
+                type="button"
+                (click)="reviewRating = star"
+                [style.background]="reviewRating >= star ? '#f59e0b' : '#cbd5e1'"
+                style="border:none;color:#fff;border-radius:4px;padding:4px 8px;font-size:0.85rem;cursor:pointer;font-weight:bold;"
+              >
+                {{ star }} ★
+              </button>
+            </div>
+            <!-- Comment Input -->
+            <input
+              type="text"
+              [(ngModel)]="reviewComment"
+              [placeholder]="isAmharic ? 'አስተያየትዎን እዚህ ይጻፉ (አማራጭ)...' : 'Write your review here (optional)...'"
+              style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1;font-size:0.85rem;margin-bottom:8px;"
+            >
+            <button
+              type="button"
+              class="primary-btn"
+              style="padding:6px 14px;font-size:0.82rem;"
+              [disabled]="isSubmittingReview"
+              (click)="submitReview(selectedProduct._id)"
+            >
+              {{ isSubmittingReview
+                ? (isAmharic ? 'በመላክ ላይ…' : 'Submitting…')
+                : (isAmharic ? 'ግምገማ ላክ' : 'Submit Review') }}
             </button>
           </div>
         </div>
@@ -734,6 +804,15 @@
     <input type="tel" [(ngModel)]="checkoutForm.telebirrPhone" name="telebirrPhone" placeholder="09xxxxxxxx">
   </label>
 
+  <!-- TRANSACTION ID INPUT -->
+  <label *ngIf="checkoutForm.paymentMethod === 'telebirr' || checkoutForm.paymentMethod === 'cbe_birr'" class="field" style="margin-top: 15px;">
+    <span>{{ isAmharic ? 'የክፍያ ማረጋገጫ ቁጥር (Transaction ID / SMS ኮድ)' : 'Transaction ID / Reference Code (from SMS)' }}</span>
+    <input type="text" [(ngModel)]="checkoutForm.transactionId" name="transactionId" [placeholder]="checkoutForm.paymentMethod === 'telebirr' ? 'e.g. CI91... or Telebirr SMS Code' : 'e.g. FT24... or CBE Ref'">
+    <small style="color: #64748b; font-size: 11px; margin-top: 3px; display: block;">
+      {{ isAmharic ? 'ከቴሌብር ወይም CBE የመጣውን የኤስኤምኤስ ማረጋገጫ ኮድ እዚህ ያስገቡ' : 'Enter the transaction ID from your Telebirr or CBE confirmation SMS' }}
+    </small>
+  </label>
+
   <!-- RECEIPT UPLOAD -->
   <label *ngIf="checkoutForm.paymentMethod === 'telebirr' || checkoutForm.paymentMethod === 'cbe_birr'" class="field" style="margin-top: 15px;">
     <span>{{ isAmharic ? 'የክፍያ ደረሰኝ (ስክሪንሽት ወይም PDF) ይጫኑ' : 'Upload Transfer Receipt (Screenshot or PDF)' }}</span>
@@ -852,7 +931,16 @@
   </div>
 
   <!-- TOAST -->
-  <div *ngIf="toastMessage()" class="toast" role="status" aria-live="polite">
+  <div
+    *ngIf="toastMessage()"
+    class="toast"
+    [class.toast-error]="toastType() === 'error'"
+    [class.toast-success]="toastType() === 'success'"
+    role="status"
+    aria-live="polite"
+  >
+    <span *ngIf="toastType() === 'error'">⚠️</span>
+    <span *ngIf="toastType() === 'success'">✓</span>
     <span>{{ toastMessage() }}</span>
   </div>
 </div>

@@ -81,6 +81,16 @@ export class TranslationService {
     saveAndPublish: { en: 'Save Product', am: 'መዝግብ' },
     deleteProduct: { en: 'Delete', am: 'ሰርዝ' },
     heroTitle: { en: 'Ethiopian Marketplace', am: 'የኢትዮጵያ ገበያ' },
-    heroSubtitle: { en: 'Local products delivered from verified Telegram shops.', am: 'ከቴሌግራም ሱቆች በቀጥታ ወደ እርስዎ።' }
+    heroSubtitle: { en: 'Local products delivered from verified Telegram shops.', am: 'ከቴሌግራም ሱቆች በቀጥታ ወደ እርስዎ።' },
+    statusPending: { en: 'Pending', am: 'ማረጋገጫ በመጠባበቅ ላይ' },
+    statusConfirmed: { en: 'Confirmed', am: 'ተፀተና' },
+    statusShipped: { en: 'Shipped', am: 'ደርሷል' },
+    statusDelivered: { en: 'Delivered', am: 'ተልኳል' },
+    statusCancelled: { en: 'Canceled', am: 'ተሰርዟል' },
+    statusPaid: { en: 'Paid', am: 'ተከፍሏል' },
+    statusVerificationPending: { en: 'Verification Pending', am: 'በመፈምማ ላይ' },
+    joinWaitlist: { en: 'Join Waitlist', am: 'ወደ መጠባበቅ ዝር' },
+    waitlisted: { en: 'Waitlisted', am: 'በመጠባበቅ ላይ' },
+    password: { en: 'Password', am: 'ምስጢር ቁጥር' }
   };
 }

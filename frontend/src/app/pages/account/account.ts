@@ -289,11 +289,13 @@ canCancel(order: Order): boolean {
 }
 
 formatOrderStatus(status: string): string {
-  return StatusMapper.mapOrderStatus(status);
+  const englishStatus = StatusMapper.mapOrderStatus(status);
+  return this.i18n.t(`status${englishStatus.charAt(0).toUpperCase() + englishStatus.slice(1)}`);
 }
 
 formatPaymentStatus(status: string): string {
-  return StatusMapper.mapPaymentStatus(status);
+  const englishStatus = StatusMapper.mapPaymentStatus(status);
+  return this.i18n.t(`status${englishStatus.charAt(0).toUpperCase() + englishStatus.slice(1)}`);
 }
 
   deleteProduct(id: string) {
