@@ -47,16 +47,21 @@ describe('OrderService', () => {
 
   it('should handle payment verification error', () => {
     const orderId = 'test-order-id';
+    let errorReceived = false;
 
     service.verifyPayment(orderId, 'verified').subscribe({
-      next: () => fail('Should have failed'),
-      error: error => {
-        expect(error).toBeTruthy();
+      next: () => {
+        errorReceived = false;
+      },
+      error: () => {
+        errorReceived = true;
       }
     });
 
     const req = httpMock.expectOne('/api/payment/verify-payment');
     req.flush({ message: 'Verification failed' }, { status: 400, statusText: 'Bad Request' });
     httpMock.verify();
+
+    expect(errorReceived).toBe(true);
   });
 });

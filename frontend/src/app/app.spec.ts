@@ -4,8 +4,7 @@ import { AuthService } from './services/auth';
 import { DeliveryService } from './services/delivery';
 import { of } from 'rxjs';
 import { signal } from '@angular/core';
-import { beforeEach, describe } from 'node:test';
-import { expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('App', () => {
   let mockAuthService: any;
@@ -37,9 +36,9 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have as title 'frontend'`, () => {
+  it(`should have as title 'TeleGebeya'`, () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
-    expect((app as any).title()).toEqual('frontend');
+    expect((app as any).title()).toEqual('TeleGebeya');
   });
 });
