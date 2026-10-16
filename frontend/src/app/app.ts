@@ -655,6 +655,13 @@ if (this.isSubmittingSellerPost) return;
       ? `"${product.name}"${colorName ? ` (${colorName})` : ''} ወደ ቅርጫት ተጨምሯል`
       : `Added "${product.name}"${colorName ? ` in ${colorName}` : ''} to cart`;
     this.showToast(msg);
+    this.trackEvent('add_to_cart', {
+      item_id: product._id,
+      item_name: product.name,
+      price: product.price,
+      quantity: quantity,
+      category: product.category
+    });
   }
 
   isWaitlisted(product: Product | null, colorName?: string): boolean {
@@ -824,6 +831,17 @@ if (this.isSubmittingSellerPost) return;
         this.isOrderSuccessModalOpen = true;
         this.receiptBase64 = '';
         this.showToast(this.isAmharic ? 'ትእዛዝዎ ተልኳል' : 'Order placed successfully', 'success');
+        this.trackEvent('purchase', {
+          transaction_id: order._id,
+          value: order.totalAmount,
+          currency: 'ETB',
+          items: order.items.map((item: any) => ({
+            item_id: item.product,
+            item_name: item.name,
+            price: item.price,
+            quantity: item.quantity
+          }))
+        });
         this.loadProducts();
       },
       error: (err: any) => {
