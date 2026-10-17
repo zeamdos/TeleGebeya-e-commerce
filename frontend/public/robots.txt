@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://telegebeya.netlify.app/sitemap.xml
