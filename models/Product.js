@@ -45,9 +45,20 @@ sellerTelebirr: { type: String, default: '' },
   }],
 }, { timestamps: true });
 
+// Existing indexes
 productSchema.index({ category: 1, price: 1 });
 productSchema.index({ seller: 1 });
 productSchema.index({ featured: 1 });
 productSchema.index({ name: 'text', description: 'text', category: 'text' });
+
+// NEW OPTIMIZATION: Add indexes for frequently queried fields
+productSchema.index({ createdAt: -1 }); // For sorting by newest
+productSchema.index({ rating: -1 }); // For sorting by highest rated
+productSchema.index({ reviewsCount: -1 }); // For sorting by most reviewed
+productSchema.index({ sellerId: 1 }); // Fast lookup for seller's products
+productSchema.index({ stock: 1 }); // For filtering in-stock products
+productSchema.index({ price: 1 }); // For sorting by price (ascending)
+productSchema.index({ price: -1 }); // For sorting by price (descending)
+productSchema.index({ 'waitlist.phone': 1 }); // Fast waitlist lookup by phone
 
 module.exports = mongoose.model('Product', productSchema);

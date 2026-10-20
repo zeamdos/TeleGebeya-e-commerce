@@ -19,7 +19,14 @@ const userSchema = new mongoose.Schema({
   autoIndex: false 
 });
 
+// Existing indexes
 userSchema.index({ role: 1 });
 userSchema.index({ banned: 1 });
+
+// NEW OPTIMIZATION: Add indexes for frequently queried fields
+userSchema.index({ telegramChatId: 1 }); // Fast lookup for Telegram notifications
+userSchema.index({ telegramHandle: 1 }); // Fast lookup for seller profiles
+userSchema.index({ sellerTelebirr: 1 }); // Fast lookup for seller payment info
+userSchema.index({ createdAt: -1 }); // For sorting users by signup date
 
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);

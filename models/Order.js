@@ -136,6 +136,16 @@ orderSchema.index({ payoutStatus: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1, createdAt: -1 });
 orderSchema.index({ phone: 1 }); // For guest order lookup
 orderSchema.index({ createdAt: -1 }); // For general sorting
+
+// NEW OPTIMIZATION: Add indexes for frequently queried fields
+orderSchema.index({ buyer: 1, createdAt: -1 }); // Fast lookup for buyer's orders
+orderSchema.index({ totalAmount: 1 }); // For filtering by order value
+orderSchema.index({ subcity: 1 }); // For filtering by delivery location
+orderSchema.index({ transactionId: 1 }, { sparse: true }); // For payment verification
+orderSchema.index({ 'items.product': 1 }); // For finding orders containing specific product
+orderSchema.index({ 'items.seller': 1, orderStatus: 1 }); // For seller's pending orders
+orderSchema.index({ disputeStatus: 1 }); // For filtering disputed orders
+orderSchema.index({ autoReleaseEligibleAt: 1 }); // For finding orders ready for auto-release
 // Note: transactionId uniqueness is enforced in application logic to avoid schema conflicts
 
 // Virtual for formatted order number
